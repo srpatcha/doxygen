@@ -56,12 +56,14 @@ class MainWindow : public QMainWindow
     void resetToDefaults();
     void selectTab(int);
     void quit();
+    void switchLanguage();
 
   private slots:
     void openRecent(QAction *action);
     void selectWorkingDir();
     void updateWorkingDir();
     void runDoxygen();
+    void runDoxygenMenu();
     void readStdout();
     void runComplete();
     void showHtmlOutput();
@@ -86,6 +88,7 @@ class MainWindow : public QMainWindow
     QLineEdit *m_runOptions;
     QPushButton *m_selWorkingDir;
     QPushButton *m_run;
+    QAction *m_runMenu;
     QPushButton *m_saveLog;
     QCheckBox   *m_showCondensedSettings;
     QPushButton *m_launchHtml;
@@ -94,6 +97,7 @@ class MainWindow : public QMainWindow
     QLabel *m_runStatus;
     Expert *m_expert;
     Wizard *m_wizard;
+    QWidget *m_runTab;
     QString m_fileName;
     QSettings m_settings;
     QMenu *m_recentMenu;
@@ -108,13 +112,20 @@ class MainWindow : public QMainWindow
     bool m_modified;
 };
 
-/*! \brief This class serves as a namespace for global variables used by the doxygen wizard.
- *
- *  All fields in this class are public and static, so they can be used directly.
- */
-class DoxygenWizard
+namespace DoxygenWizard
 {
-  public:
-    static bool debugFlag;
+  extern bool    debugFlag;
+  extern QString langCode;
+  QString msgFileNotFound(const QString &fileName);
+  QString msgNoPreviewAvailable(const QString &fileName);
+  QString msgNoProjectLogoSelected();
+  QString msgBrowseToFile();
+  QString msgBrowseToFolder();
+  QString msgSelectButton();
+  QString msgPreviousButton();
+  QString msgNextButton();
+  QString msgTopicsHeader();
+  QString translateExpertTopic(const QString &name);
 };
+
 #endif

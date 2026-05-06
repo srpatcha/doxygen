@@ -25,18 +25,15 @@
 #include "define.h"
 #include "cache.h"
 #include "symbolmap.h"
+#include "searchindex.h"
 
 #define THREAD_LOCAL thread_local
 #define AtomicInt    std::atomic_int
-#define AtomicBool   std::atomic_bool
 
 class RefList;
 class PageLinkedMap;
 class PageDef;
-class SearchIndexIntf;
 class ParserManager;
-class BufStr;
-class CiteDict;
 class MemberDef;
 class GroupDef;
 class GroupLinkedMap;
@@ -50,9 +47,6 @@ class NamespaceLinkedMap;
 class NamespaceDef;
 class DirRelationLinkedMap;
 class IndexList;
-class FormulaList;
-class FormulaDict;
-class FormulaNameDict;
 class Preprocessor;
 struct MemberGroupInfo;
 class NamespaceDefMutable;
@@ -62,8 +56,8 @@ struct LookupInfo
   LookupInfo() = default;
   LookupInfo(const Definition *d,const MemberDef *td,const QCString &ts,const QCString &rt)
     : definition(d), typeDef(td), templSpec(ts), resolvedType(rt) {}
-  const Definition  *definition = 0;
-  const MemberDef *typeDef = 0;
+  const Definition  *definition = nullptr;
+  const MemberDef *typeDef = nullptr;
   QCString   templSpec;
   QCString   resolvedType;
 };
@@ -76,9 +70,20 @@ struct InputFileEncoding
   QCString encoding;
 };
 
+struct NamespaceAliasInfo
+{
+  NamespaceAliasInfo(const std::string &a,const std::string &ctx=std::string()) : alias(a), context(ctx) {}
+  std::string alias;
+  std::string context;
+};
+
 using InputFileEncodingList = std::vector<InputFileEncoding>;
 
 using ClangUsrMap = std::unordered_map<std::string,const Definition *>;
+
+using StaticInitMap = std::unordered_map<std::string,BodyInfo>;
+
+using NamespaceAliasInfoMap = std::unordered_map<std::string,NamespaceAliasInfo>;
 
 /*! \brief This class serves as a namespace for global variables used by doxygen.
  *
@@ -95,30 +100,30 @@ class Doxygen
     static std::unique_ptr<PageDef>  mainPage;
     static FileNameLinkedMap        *includeNameLinkedMap;
     static FileNameLinkedMap        *exampleNameLinkedMap;
-    static StringSet                 inputPaths;
+    static StringUnorderedSet        inputPaths;
     static FileNameLinkedMap        *inputNameLinkedMap;
     static FileNameLinkedMap        *imageNameLinkedMap;
     static FileNameLinkedMap        *dotFileNameLinkedMap;
     static FileNameLinkedMap        *mscFileNameLinkedMap;
     static FileNameLinkedMap        *diaFileNameLinkedMap;
+    static FileNameLinkedMap        *plantUmlFileNameLinkedMap;
+    static FileNameLinkedMap        *mermaidFileNameLinkedMap;
     static MemberNameLinkedMap      *memberNameLinkedMap;
     static MemberNameLinkedMap      *functionNameLinkedMap;
-    static StringUnorderedMap        namespaceAliasMap;
+    static NamespaceAliasInfoMap     namespaceAliasMap;
     static GroupLinkedMap           *groupLinkedMap;
     static NamespaceLinkedMap       *namespaceLinkedMap;
     static StringMap                 tagDestinationMap;
-    static StringMap                 aliasMap;
+    static StringUnorderedSet        tagFileSet;
     static MemberGroupInfoMap        memberGroupInfoMap;
     static StringUnorderedSet        expandAsDefinedSet;
     static std::unique_ptr<NamespaceDef> globalNamespaceDef;
     static NamespaceDefMutable      *globalScope;
     static QCString                  htmlFileExtension;
     static bool                      parseSourcesNeeded;
-    static std::unique_ptr<SearchIndexIntf> searchIndex;
+    static SearchIndexIntf           searchIndex;
     static SymbolMap<Definition>    *symbolMap;
     static ClangUsrMap              *clangUsrMap;
-    static Cache<std::string,LookupInfo> *typeLookupCache;
-    static Cache<std::string,LookupInfo> *symbolLookupCache;
     static DirLinkedMap             *dirLinkedMap;
     static DirRelationLinkedMap      dirRelations;
     static ParserManager            *parserManager;
@@ -130,22 +135,11 @@ class Doxygen
     static DefinesPerFileList        macroDefinitions;
     static bool                      clangAssistedParsing;
     static QCString                  verifiedDotPath;
-    static volatile bool             terminating;
     static InputFileEncodingList     inputFileEncodingList;
     static std::mutex                countFlowKeywordsMutex;
     static std::mutex                addExampleMutex;
+    static StaticInitMap             staticInitMap;
 };
-
-/** Deleter that only deletes an object if doxygen is not already terminating */
-template<class T>
-struct NonTerminatingDeleter
-{
-  void operator()(T *obj)
-  {
-    if (!Doxygen::terminating) delete obj;
-  }
-};
-
 
 void initDoxygen();
 void readConfiguration(int argc, char **argv);
@@ -153,7 +147,6 @@ void checkConfiguration();
 void adjustConfiguration();
 void parseInput();
 void generateOutput();
-void readAliases();
 void cleanUpDoxygen();
 void readFileOrDirectory(const QCString &s,
                         FileNameLinkedMap *fnDict,
@@ -164,9 +157,8 @@ void readFileOrDirectory(const QCString &s,
                         StringUnorderedSet *resultSet,
                         bool recursive,
                         bool errorIfNotExist=TRUE,
-                        StringUnorderedSet *killSet = 0,
-                        StringSet *paths = 0
+                        StringUnorderedSet *killSet = nullptr,
+                        StringUnorderedSet *paths = nullptr
                        );
-void copyAndFilterFile(const char *fileName,BufStr &dest);
 
 #endif

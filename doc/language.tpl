@@ -1,6 +1,6 @@
 
-ATTENTION! This is the template for generating language.doc. If you want to
-change the language.doc, make the changes here and inside maintainers.txt.
+ATTENTION! This is the template for generating language.dox. If you want to
+change the language.dox, make the changes here and inside maintainers.txt.
 
 /******************************************************************************
  * %(editnote)s
@@ -341,7 +341,7 @@ really obsolete translators brings too much maintenance and
 run-time overhead.
 
 \htmlonly
-Go to the <a href="perlmod.html">next</a> section or return to the
+Go to the <a href="i18n_guide.html">next</a> section or return to the
  <a href="index.html">index</a>.
 \endhtmlonly
 

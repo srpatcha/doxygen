@@ -16,8 +16,9 @@ import xml.dom.minidom
 import sys
 import re
 import textwrap
-from xml.dom import minidom, Node
+from xml.dom import Node
 import io
+import glob
 
 messages = {}
 
@@ -52,12 +53,13 @@ def transformDocs(doc):
     doc = doc.replace("\\$", "$")
     doc = doc.replace("\\#include ", "#include ")
     doc = doc.replace("\\#undef ", "#undef ")
+    doc = doc.replace("\\# ", "# ")
     doc = doc.replace("-# ", "\n - ")
     doc = doc.replace(" - ", "\n - ")
-    doc = doc.replace("\\sa", "\nSee also: ")
-    doc = doc.replace("\\par", "\n")
-    doc = doc.replace("@note", "\nNote:")
-    doc = doc.replace("\\note", "\nNote:")
+    doc = doc.replace("\\sa ", "\nSee also: ")
+    doc = doc.replace("\\par ", "\n")
+    doc = doc.replace("@note ", "\nNote: ")
+    doc = doc.replace("\\note ", "\nNote: ")
     doc = doc.replace("\\verbatim", "\n")
     doc = doc.replace("\\endverbatim", "\n")
     doc = doc.replace("<code>", "")
@@ -68,6 +70,7 @@ def transformDocs(doc):
     doc = doc.replace("\\@", "@")
     doc = doc.replace("\\\\", "\\")
     # \ref name "description" -> description
+    doc = re.sub('\\\\ref +[^ ]* +"\\\\ref"', '\\\\REF', doc)
     doc = re.sub('\\\\ref +[^ ]* +"([^"]*)"', '\\1', doc)
     # \ref specials
     # \ref <key> -> description
@@ -81,7 +84,8 @@ def transformDocs(doc):
                  doc)
     doc = re.sub('\\\\ref +formulas', '"Including formulas"', doc)
     # fallback for not handled
-    doc = re.sub('\\\\ref', '', doc)
+    doc = re.sub('\\\\ref ', ' ', doc)
+    doc = re.sub('\\\\REF', '\\\\ref', doc)
     #<a href="address">description</a> -> description (see: address)
     doc = re.sub('<a +href="([^"]*)" *>([^<]*)</a>', '\\2 (see: \n\\1)', doc)
     # LaTeX name as formula -> LaTeX
@@ -161,8 +165,8 @@ def prepCDocs(node):
     type = node.getAttribute('type')
     format = node.getAttribute('format')
     defval = node.getAttribute('defval')
-    adefval = node.getAttribute('altdefval')
-    doc = "";
+    #adefval = node.getAttribute('altdefval')
+    doc = ""
     if (type != 'obsolete'):
         for n in node.childNodes:
             if (n.nodeName == "docs"):
@@ -237,7 +241,7 @@ def prepCDocs(node):
             doc += "<br/>" + messages['depstxt'].format(depends.lower(), depends.upper())
 
     docC = transformDocs(doc)
-    return docC;
+    return docC
 
 
 def parseOption(node):
@@ -252,7 +256,7 @@ def parseOption(node):
     depends = node.getAttribute('depends')
     setting = node.getAttribute('setting')
     orgtype = node.getAttribute('orgtype')
-    docC = prepCDocs(node);
+    docC = prepCDocs(node)
     if len(setting) > 0:
         print("#if %s" % (setting))
     print("  //----")
@@ -468,7 +472,7 @@ def parseGroupMapAvailable(node):
             if type=='enum':
                 if len(setting) > 0:
                     print("#if %s" % (setting))
-                print("    %-22s isAvailable_%-41s { return v.lower() == %s_enum2str(%s_str2enum(v)).lower(); }" % ('bool',name+'(QCString v)',name,name));
+                print("    %-22s isAvailable_%-41s { return v.lower() == %s_enum2str(%s_str2enum(v)).lower(); }" % ('bool',name+'(QCString v)',name,name))
                 if len(setting) > 0:
                     print("#endif")
 
@@ -536,7 +540,7 @@ def parseGroupCDocs(node):
         if n.nodeType == Node.ELEMENT_NODE:
             type = n.getAttribute('type')
             name = n.getAttribute('id')
-            docC = prepCDocs(n);
+            docC = prepCDocs(n)
             if type != 'obsolete':
                 print("  doc->add(")
                 print("              \"%s\"," % (name))
@@ -555,9 +559,9 @@ def parseOptionDoc(node, first):
     type = node.getAttribute('type')
     format = node.getAttribute('format')
     defval = node.getAttribute('defval')
-    adefval = node.getAttribute('altdefval')
+    #adefval = node.getAttribute('altdefval')
     depends = node.getAttribute('depends')
-    setting = node.getAttribute('setting')
+    #setting = node.getAttribute('setting')
     doc = ""
     if (type != 'obsolete'):
         for n in node.childNodes:
@@ -666,7 +670,7 @@ def parseOptionDoc(node, first):
 def parseGroupsDoc(node):
     name = node.getAttribute('name')
     doc = node.getAttribute('docs')
-    print("\section config_%s %s" % (name.lower(), doc))
+    print("\\section config_%s %s" % (name.lower(), doc))
     # Start of list has been moved to the first option for better
     # anchor placement
     #  print "<dl>"
@@ -680,7 +684,6 @@ def parseGroupsDoc(node):
 
 
 def parseGroupsList(node, commandsList):
-    list = ()
     for n in node.childNodes:
         if n.nodeType == Node.ELEMENT_NODE:
             type = n.getAttribute('type')
@@ -733,9 +736,125 @@ def parseGenerator(node):
                         doc += n1.nodeValue.rstrip("\r\n").lstrip("\r\n")
                 messages[name] = doc
 
+def collectOptions(elem):
+    """Collect all option IDs from config.xml."""
+    options = set()
+    optionsWithElems = {}
+    for group in elem.getElementsByTagName('group'):
+        for option in group.getElementsByTagName('option'):
+            optionId = option.getAttribute('id')
+            optionType = option.getAttribute('type')
+            if optionId and optionType!='obsolete':
+                options.add(optionId)
+                optionsWithElems[optionId] = option
+    return (options,optionsWithElems)
+
+def syncLocalizedConfig(elem, translationsDir, autoSync=False):
+    """Sync localized config_xx.xml files with original config.xml.
+
+    Args:
+        elem: The root element of config.xml
+        translationsDir: Path to translations directory
+        autoSync: If True, automatically sync; if False, only report differences
+    """
+    import os
+    import shutil
+
+    existingOptions, existingOptionsWithElements = collectOptions(elem)
+    print("Found %d active options in config.xml" % len(existingOptions))
+
+    srcDir = os.path.dirname(translationsDir)
+    if os.path.basename(srcDir) == 'addon':
+        srcDir = os.path.dirname(srcDir)
+    srcDir = os.path.join(srcDir, 'src')
+
+    for configFile in sorted(glob.glob("i18n/config_*.xml")):
+
+        if not os.path.exists(configFile):
+            print("Skipping %s: config file not found" % configFile)
+            continue
+
+        print("Processing %s..." % configFile)
+
+        try:
+            with io.open(configFile, 'r', encoding='utf8') as f:
+                content = f.read()
+            langDoc = xml.dom.minidom.parseString(content)
+        except Exception as e:
+            print("  Error parsing %s: %s" % (configFile, e))
+            continue
+
+        langOptions = set()
+        langOptionsWithElements = {}
+        for group in langDoc.getElementsByTagName('group'):
+            for option in group.getElementsByTagName('option'):
+                optionId = option.getAttribute('id')
+                if optionId:
+                    langOptions.add(optionId)
+                    langOptionsWithElements[optionId] = option
+
+        missingOptions = existingOptions - langOptions
+        extraOptions = langOptions - existingOptions
+
+        if missingOptions:
+            print("  Missing %d options: %s" % (len(missingOptions), ', '.join(sorted(list(missingOptions))[:5])))
+            if len(missingOptions) > 5:
+                print("  ... and %d more" % (len(missingOptions) - 5))
+
+        if extraOptions:
+            print("  Extra %d options (not in original): %s" % (len(extraOptions), ', '.join(sorted(list(extraOptions))[:5])))
+            if len(extraOptions) > 5:
+                print("  ... and %d more" % (len(extraOptions) - 5))
+
+        if not missingOptions and not extraOptions:
+            print("  OK - all options synchronized")
+            continue
+
+        if autoSync and (missingOptions or extraOptions):
+            print("  Auto-syncing...")
+
+            rootElement = langDoc.documentElement
+
+            for optionId in extraOptions:
+                optionElem = langOptionsWithElements[optionId]
+                parentGroup = optionElem.parentNode
+                parentGroup.removeChild(optionElem)
+                print("    Removed: %s" % optionId)
+
+            for optionId in missingOptions:
+                optionElem = existingOptionsWithElements[optionId]
+                importedElem = langDoc.importNode(optionElem, True)
+
+                parentGroup = None
+                for group in rootElement.getElementsByTagName('group'):
+                    parentGroup = group
+                    break
+
+                if parentGroup:
+                    parentGroup.appendChild(importedElem)
+                    print("    Added: %s" % optionId)
+
+            backupFile = configFile + ".bak"
+            shutil.copy2(configFile, backupFile)
+
+            outputContent = langDoc.toprettyxml(indent='  ', encoding='utf-8')
+            outputStr = outputContent.decode('utf-8') if isinstance(outputContent, bytes) else outputContent
+
+            lines = outputStr.split('\n')
+            filteredLines = [line for line in lines if line.strip()]
+            outputStr = '\n'.join(filteredLines)
+
+            with io.open(configFile, 'w', encoding='utf8') as f:
+                f.write(outputStr)
+
+            print("  Backup saved to: %s" % backupFile)
+            print("  File updated: %s" % configFile)
+
+    print("\nSync %s!" % ("complete" if not autoSync else "and update complete"))
+
 def main():
-    if len(sys.argv)<3 or (not sys.argv[1] in ['-doc','-cpp','-wiz','-maph','-maps']):
-        sys.exit('Usage: %s -doc|-cpp|-wiz|-maph|-maps config.xml' % sys.argv[0])
+    if len(sys.argv)<3 or (sys.argv[1] not in ['-doc','-cpp','-wiz','-maph','-maps','-sync']):
+        sys.exit('Usage: %s -doc|-cpp|-wiz|-maph|-maps|-sync config.xml [translations_dir]' % sys.argv[0])
     try:
         configFile = sys.argv[2]
         if sys.version_info.major == 2:
@@ -828,7 +947,7 @@ def main():
         print("    struct Info")
         print("    {")
         print("      enum Type { Bool, Int, String, List, Unknown };")
-        print("      using Enum2BoolMap = std::unordered_map<std::string,bool>;");
+        print("      using Enum2BoolMap = std::unordered_map<std::string,bool>;")
         print("      Info(Type t,bool         ConfigValues::*b) : type(t), value(b) {}")
         print("      Info(Type t,int          ConfigValues::*i) : type(t), value(i) {}")
         print("      Info(Type t,QCString     ConfigValues::*s, const Enum2BoolMap &boolMap = {}) : type(t), value(s), m_boolMap(boolMap) {}")
@@ -868,18 +987,18 @@ def main():
         print("#include \"configimpl.h\"")
         print("#include <unordered_map>")
         print("")
-        print("const ConfigValues::Info *ConfigValues::get(const QCString &tag) const");
-        print("{");
-        print("  static const std::unordered_map< std::string, Info > configMap =");
-        print("  {");
+        print("const ConfigValues::Info *ConfigValues::get(const QCString &tag) const")
+        print("{")
+        print("  static const std::unordered_map< std::string, Info > configMap =")
+        print("  {")
         for n in elem.childNodes:
             if n.nodeType == Node.ELEMENT_NODE:
                 if (n.nodeName == "group"):
                     parseGroupMapInit(n)
-        print("  };");
-        print("  auto it = configMap.find(tag.str());");
-        print("  return it!=configMap.end() ? &it->second : nullptr;");
-        print("}");
+        print("  };")
+        print("  auto it = configMap.find(tag.str());")
+        print("  return it!=configMap.end() ? &it->second : nullptr;")
+        print("}")
         print("")
         print("void ConfigValues::init()")
         print("{")
@@ -895,7 +1014,7 @@ def main():
         print("")
         print("StringVector ConfigValues::fields() const")
         print("{")
-        print("  return {");
+        print("  return {")
         first=True
         for n in elem.childNodes:
             if n.nodeType == Node.ELEMENT_NODE:
@@ -920,7 +1039,7 @@ def main():
         print("    auto it = m_boolMap.find((ConfigValues::instance().*(value.s)).str());")
         print("    if (it!=m_boolMap.end())")
         print("    {")
-        print("      return it->second;");
+        print("      return it->second;")
         print("    }")
         print("  }")
         print("  return false;")
@@ -939,11 +1058,11 @@ def main():
         print("")
         print("void addConfigOptions(ConfigImpl *cfg)")
         print("{")
-        print("  ConfigString *cs;")
-        print("  ConfigEnum   *ce;")
-        print("  ConfigList   *cl;")
-        print("  ConfigInt    *ci;")
-        print("  ConfigBool   *cb;")
+        print("  ConfigString *cs = nullptr;")
+        print("  ConfigEnum   *ce = nullptr;")
+        print("  ConfigList   *cl = nullptr;")
+        print("  ConfigInt    *ci = nullptr;")
+        print("  ConfigBool   *cb = nullptr;")
         print("")
         # process header
         for n in elem.childNodes:
@@ -974,6 +1093,12 @@ def main():
                 if (n.nodeName == "group"):
                     parseGroupCDocs(n)
         print("}")
+    elif (sys.argv[1] == "-sync"):
+        if len(sys.argv) < 3:
+            sys.exit('Usage: %s -sync config.xml translations_dir [--auto]' % sys.argv[0])
+        translationsDir = sys.argv[3]
+        autoSync = '--auto' in sys.argv
+        syncLocalizedConfig(elem, translationsDir, autoSync)
 
 if __name__ == '__main__':
     main()

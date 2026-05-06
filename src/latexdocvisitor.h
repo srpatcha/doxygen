@@ -26,6 +26,12 @@ class OutputCodeList;
 class LatexCodeGenerator;
 class TextStream;
 
+enum class TexOrPdf
+{
+   NO,  //!< not called through texorpdf
+   TEX, //!< called through texorpdf as TeX (first) part
+   PDF, //!< called through texorpdf as PDF (second) part
+};
 
 /*! @brief Concrete visitor implementation for LaTeX output. */
 class LatexDocVisitor : public DocVisitor
@@ -88,6 +94,8 @@ class LatexDocVisitor : public DocVisitor
     void operator()(const DocDotFile &);
     void operator()(const DocMscFile &);
     void operator()(const DocDiaFile &);
+    void operator()(const DocPlantUmlFile &);
+    void operator()(const DocMermaidFile &);
     void operator()(const DocLink &lnk);
     void operator()(const DocRef &ref);
     void operator()(const DocSecRefItem &);
@@ -132,24 +140,32 @@ class LatexDocVisitor : public DocVisitor
                    const QCString &anchor,bool refToTable=false,bool refToSection=false);
     void endLink(const QCString &ref,const QCString &file,
                  const QCString &anchor,bool refToTable=false,bool refToSection=false, SectionType sectionType = SectionType::Anchor);
-    QCString escapeMakeIndexChars(const char *s);
     void startDotFile(const QCString &fileName,const QCString &width,
                       const QCString &height, bool hasCaption,
-                      const QCString &srcFile,int srcLine);
+                      const QCString &srcFile,int srcLine, bool newFile = true);
     void endDotFile(bool hasCaption);
 
     void startMscFile(const QCString &fileName,const QCString &width,
                       const QCString &height, bool hasCaption,
-                      const QCString &srcFile,int srcLine);
+                      const QCString &srcFile,int srcLine,bool newFile = true);
     void endMscFile(bool hasCaption);
-    void writeMscFile(const QCString &fileName, const DocVerbatim &s);
+    void writeMscFile(const QCString &fileName, const DocVerbatim &s, bool newFile = true);
 
     void startDiaFile(const QCString &fileName,const QCString &width,
                       const QCString &height, bool hasCaption,
-                      const QCString &srcFile,int srcLine);
+                      const QCString &srcFile,int srcLine,bool newFile = true);
     void endDiaFile(bool hasCaption);
-    void writeDiaFile(const QCString &fileName, const DocVerbatim &s);
     void writePlantUMLFile(const QCString &fileName, const DocVerbatim &s);
+    void startPlantUmlFile(const QCString &fileName,const QCString &width,
+                      const QCString &height, bool hasCaption,
+                      const QCString &srcFile,int srcLine);
+    void endPlantUmlFile(bool hasCaption);
+    void writeMermaidFile(const QCString &baseName, const DocVerbatim &s);
+    void startMermaidFile(const QCString &fileName,const QCString &width,
+                      const QCString &height, bool hasCaption,
+                      const QCString &srcFile,int srcLine);
+    void endMermaidFile(bool hasCaption);
+
     void visitCaption(const DocNodeList &children);
 
     void incIndentLevel();
@@ -169,15 +185,13 @@ class LatexDocVisitor : public DocVisitor
     bool m_hide;
     QCString m_langExt;
     int m_hierarchyLevel;
+    TexOrPdf m_texOrPdf = TexOrPdf::NO;
 
     struct TableState
     {
       RowSpanList rowSpans;
       size_t numCols = 0;
       size_t currentColumn = 0;
-      bool inRowSpan = false;
-      bool inColSpan = false;
-      bool firstRow = false;
     };
     std::stack<TableState> m_tableStateStack; // needed for nested tables
     RowSpanList m_emptyRowSpanList;
@@ -194,7 +208,7 @@ class LatexDocVisitor : public DocVisitor
 
     void pushTableState()
     {
-      m_tableStateStack.push(TableState());
+      m_tableStateStack.emplace();
     }
     void popTableState()
     {
@@ -208,37 +222,9 @@ class LatexDocVisitor : public DocVisitor
     {
       if (!m_tableStateStack.empty()) m_tableStateStack.top().currentColumn = col;
     }
-    size_t numCols() const
-    {
-      return !m_tableStateStack.empty() ? m_tableStateStack.top().numCols : 0;
-    }
     void setNumCols(size_t num)
     {
       if (!m_tableStateStack.empty()) m_tableStateStack.top().numCols = num;
-    }
-    bool inRowSpan() const
-    {
-      return !m_tableStateStack.empty() ? m_tableStateStack.top().inRowSpan : FALSE;
-    }
-    void setInRowSpan(bool b)
-    {
-      if (!m_tableStateStack.empty()) m_tableStateStack.top().inRowSpan = b;
-    }
-    bool inColSpan() const
-    {
-      return !m_tableStateStack.empty() ? m_tableStateStack.top().inColSpan : FALSE;
-    }
-    void setInColSpan(bool b)
-    {
-      if (!m_tableStateStack.empty()) m_tableStateStack.top().inColSpan = b;
-    }
-    bool firstRow() const
-    {
-      return !m_tableStateStack.empty() ? m_tableStateStack.top().firstRow : FALSE;
-    }
-    void setFirstRow(bool b)
-    {
-      if (!m_tableStateStack.empty()) m_tableStateStack.top().firstRow = b;
     }
     RowSpanList &rowSpans()
     {
@@ -252,6 +238,10 @@ class LatexDocVisitor : public DocVisitor
     {
       return !m_tableStateStack.empty();
     }
+
+    bool isTableNested(const DocNodeVariant *n) const;
+    void writeStartTableCommand(const DocNodeVariant *n,size_t cols);
+    void writeEndTableCommand(const DocNodeVariant *n);
 
 };
 #endif
