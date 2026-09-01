@@ -1,7 +1,5 @@
 /******************************************************************************
  *
- *
- *
  * Copyright (C) 1997-2015 by Dimitri van Heesch.
  *
  * Permission to use, copy, modify, and distribute this software and its
@@ -18,23 +16,20 @@
 #ifndef CODE_H
 #define CODE_H
 
-#include "parserintf.h"
 #include "construct.h"
+#include "parserintf.h"
 
-class FileDef;
-class MemberDef;
-class QCString;
-class Definition;
+class DString;
 
-class CCodeParser : public CodeParserInterface
+class CCodeParser final : public CodeParserInterface
 {
   public:
     CCodeParser();
    ~CCodeParser() override;
     NON_COPYABLE(CCodeParser)
     void parseCode(OutputCodeList &codeOutIntf,
-                   const QCString &scopeName,
-                   const QCString &input,
+                   const DString &scopeName,
+                   const DString &input,
                    SrcLangExt lang,
                    bool stripCodeComments,
                    const CodeParserOptions &options

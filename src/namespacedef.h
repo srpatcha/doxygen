@@ -19,34 +19,34 @@
 #include <memory>
 #include <unordered_set>
 
+#include "classdef.h"
 #include "definition.h"
-#include "filedef.h"
 #include "linkedmap.h"
-#include "membergroup.h"
 
-class MemberList;
 class ClassDef;
-class ConceptDef;
-class OutputList;
 class ClassLinkedRefMap;
+class ConceptDef;
 class ConceptLinkedRefMap;
+class FileDef;
 class MemberDef;
+class MemberGroupList;
+class MemberList;
 class NamespaceDef;
-class NamespaceDefMutable;
+class OutputList;
 
 // --- Set of namespaces
 
 using NamespaceDefSet = std::unordered_set<const NamespaceDef*>;
 
-class NamespaceLinkedMap : public LinkedMap<NamespaceDef>
+class NamespaceLinkedMap final : public LinkedMap<NamespaceDef>
 {
 };
 
-class NamespaceLinkedRefMap : public LinkedRefMap<const NamespaceDef>
+class NamespaceLinkedRefMap final : public LinkedRefMap<const NamespaceDef>
 {
   public:
-    void writeDeclaration(OutputList &ol,const QCString &title,
-            bool isConstantGroup=false, bool localName=FALSE);
+    void writeDeclaration(OutputList &ol,const DString &title,
+            bool isConstantGroup=false, bool localName=false);
     bool declVisible(bool isContantGroup) const;
 };
 
@@ -69,7 +69,7 @@ class NamespaceDef : public Definition
     virtual bool subGrouping() const = 0;
     virtual MemberList *getMemberList(MemberListType lt) const = 0;
     virtual const MemberLists &getMemberLists() const = 0;
-    virtual const MemberDef *getMemberByName(const QCString &) const = 0;
+    virtual const MemberDef *getMemberByName(const DString &) const = 0;
     virtual int countVisibleMembers() const = 0;
 
     /*! Returns the user defined member groups */
@@ -93,8 +93,8 @@ class NamespaceDef : public Definition
     /*! Returns the concepts contained in this namespace */
     virtual ConceptLinkedRefMap getConcepts() const = 0;
 
-    virtual QCString title() const = 0;
-    virtual QCString compoundTypeString() const = 0;
+    virtual DString title() const = 0;
+    virtual DString compoundTypeString() const = 0;
 };
 
 class NamespaceDefMutable : public DefinitionMutable, public NamespaceDef
@@ -103,7 +103,7 @@ class NamespaceDefMutable : public DefinitionMutable, public NamespaceDef
     ABSTRACT_BASE_CLASS(NamespaceDefMutable)
 
     // --- setters/actions
-    virtual void setMetaData(const QCString &m) = 0;
+    virtual void setMetaData(const DString &m) = 0;
     virtual void insertUsedFile(FileDef *fd) = 0;
     virtual void writeDocumentation(OutputList &ol) = 0;
     virtual void writeMemberPages(OutputList &ol) = 0;
@@ -120,7 +120,7 @@ class NamespaceDefMutable : public DefinitionMutable, public NamespaceDef
     virtual void sortMemberLists() = 0;
     virtual void addListReferences() = 0;
     virtual void addRequirementReferences() = 0;
-    virtual void setFileName(const QCString &fn) = 0;
+    virtual void setFileName(const DString &fn) = 0;
     virtual void combineUsingRelations(NamespaceDefSet &visitedNamespace) = 0;
     virtual void addUsingDirective(NamespaceDef *nd) = 0;
     virtual void addUsingDeclaration(const Definition *d) = 0;
@@ -128,9 +128,9 @@ class NamespaceDefMutable : public DefinitionMutable, public NamespaceDef
 };
 
 /** Factory method to create new NamespaceDef instance */
-std::unique_ptr<NamespaceDef> createNamespaceDef(const QCString &defFileName,int defLine,int defColumn,
-                 const QCString &name,const QCString &ref=QCString(),
-                 const QCString &refFile=QCString(),const QCString &type=QCString(),
+std::unique_ptr<NamespaceDef> createNamespaceDef(const DString &defFileName,int defLine,size_t defColumn,
+                 const DString &name,const DString &ref=DString(),
+                 const DString &refFile=DString(),const DString &type=DString(),
                  bool isPublished=false);
 
 /** Factory method to create an alias of an existing namespace. Used for inline namespaces. */
@@ -146,9 +146,9 @@ NamespaceDefMutable     *toNamespaceDefMutable(Definition *d);
 
 // --- Helpers
 
-void replaceNamespaceAliases(QCString &name);
-NamespaceDef *getResolvedNamespace(const QCString &key);
-inline NamespaceDefMutable *getResolvedNamespaceMutable(const QCString &key)
+void replaceNamespaceAliases(DString &name);
+NamespaceDef *getResolvedNamespace(const DString &key);
+inline NamespaceDefMutable *getResolvedNamespaceMutable(const DString &key)
 {
   return toNamespaceDefMutable(getResolvedNamespace(key));
 }

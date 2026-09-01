@@ -21,18 +21,18 @@
 #include <vector>
 
 #include "containers.h"
-#include "qcstring.h"
+#include "dstring.h"
 
 struct MermaidDiagramInfo
 {
-  MermaidDiagramInfo(const QCString &baseName_, const QCString &content_,
-                     const QCString &outDir_, const QCString &srcFile_, int srcLine_)
+  MermaidDiagramInfo(const DString &baseName_, const DString &content_,
+                     const DString &outDir_, const DString &srcFile_, int srcLine_)
      : baseName(baseName_), content(content_), outDir(outDir_),
        srcFile(srcFile_), srcLine(srcLine_) {}
-  QCString baseName;
-  QCString content;
-  QCString outDir;
-  QCString srcFile;
+  DString baseName;
+  DString content;
+  DString outDir;
+  DString srcFile;
   int srcLine;
 };
 
@@ -46,6 +46,10 @@ class MermaidManager
 
     static MermaidManager &instance();
 
+    void setHasInlineDiagrams();
+    bool hasInlineDiagrams() const { return m_hasInlineDiagrams; }
+    bool needToRun() const { return !m_diagrams.empty(); }
+
     /** Run mmdc tool for all collected diagrams */
     void run();
 
@@ -58,9 +62,9 @@ class MermaidManager
      *  @param[in] srcLine     the line number resulting in the write command.
      *  @returns The base name of the generated file (without extension).
      */
-    QCString writeMermaidSource(const QCString &outDirArg, const QCString &fileName,
-                                const QCString &content, ImageFormat format,
-                                const QCString &srcFile, int srcLine);
+    DString writeMermaidSource(const DString &outDirArg, const DString &fileName,
+                                const DString &content, ImageFormat format,
+                                const DString &srcFile, int srcLine);
 
     /** Register a generated Mermaid image with the index.
      *  @param[in] baseName the name of the generated file (as returned by writeMermaidSource())
@@ -68,7 +72,7 @@ class MermaidManager
      *  @param[in] format   the image format that was generated.
      *  @param[in] toIndex  add the file to the index lists for htmlhelp / qhc etc.
      */
-    void generateMermaidOutput(const QCString &baseName, const QCString &outDir, ImageFormat format, bool toIndex);
+    void generateMermaidOutput(const DString &baseName, const DString &outDir, ImageFormat format, bool toIndex);
 
     struct MermaidDiagram
     {
@@ -78,13 +82,14 @@ class MermaidManager
     };
     using DiagramList = std::vector<MermaidDiagram>;
 
-    static QCString imageExtension(ImageFormat imageFormat);
+    static DString imageExtension(ImageFormat imageFormat);
     static ImageFormat convertToImageFormat(OutputFormat outputFormat);
 
   private:
     MermaidManager();
 
     DiagramList m_diagrams;
+    bool m_hasInlineDiagrams = false;
 };
 
 #endif

@@ -23,51 +23,44 @@
 #include "dirdef.h"
 #include "memberlist.h"
 #include "define.h"
-#include "cache.h"
 #include "symbolmap.h"
 #include "searchindex.h"
 
 #define THREAD_LOCAL thread_local
 #define AtomicInt    std::atomic_int
 
-class RefList;
-class PageLinkedMap;
-class PageDef;
-class ParserManager;
-class MemberDef;
-class GroupDef;
-class GroupLinkedMap;
-class FileDef;
-class ClassDef;
 class ClassLinkedMap;
 class ConceptLinkedMap;
-class MemberNameLinkedMap;
-class FileNameLinkedMap;
-class NamespaceLinkedMap;
-class NamespaceDef;
 class DirRelationLinkedMap;
+class FileNameLinkedMap;
+class GroupLinkedMap;
 class IndexList;
-class Preprocessor;
-struct MemberGroupInfo;
+class MemberDef;
+class MemberNameLinkedMap;
+class NamespaceDef;
 class NamespaceDefMutable;
+class NamespaceLinkedMap;
+class PageDef;
+class PageLinkedMap;
+class ParserManager;
 
 struct LookupInfo
 {
   LookupInfo() = default;
-  LookupInfo(const Definition *d,const MemberDef *td,const QCString &ts,const QCString &rt)
+  LookupInfo(const Definition *d,const MemberDef *td,const DString &ts,const DString &rt)
     : definition(d), typeDef(td), templSpec(ts), resolvedType(rt) {}
   const Definition  *definition = nullptr;
   const MemberDef *typeDef = nullptr;
-  QCString   templSpec;
-  QCString   resolvedType;
+  DString   templSpec;
+  DString   resolvedType;
 };
 
 struct InputFileEncoding
 {
   InputFileEncoding() {}
-  InputFileEncoding(const QCString &pat, const QCString &enc) : pattern(pat), encoding(enc) {}
-  QCString pattern;
-  QCString encoding;
+  InputFileEncoding(const DString &pat, const DString &enc) : pattern(pat), encoding(enc) {}
+  DString pattern;
+  DString encoding;
 };
 
 struct NamespaceAliasInfo
@@ -119,7 +112,7 @@ class Doxygen
     static StringUnorderedSet        expandAsDefinedSet;
     static std::unique_ptr<NamespaceDef> globalNamespaceDef;
     static NamespaceDefMutable      *globalScope;
-    static QCString                  htmlFileExtension;
+    static DString                  htmlFileExtension;
     static bool                      parseSourcesNeeded;
     static SearchIndexIntf           searchIndex;
     static SymbolMap<Definition>    *symbolMap;
@@ -128,13 +121,13 @@ class Doxygen
     static DirRelationLinkedMap      dirRelations;
     static ParserManager            *parserManager;
     static bool                      suppressDocWarnings;
-    static QCString                  filterDBFileName;
+    static DString                  filterDBFileName;
     static IndexList                *indexList;
-    static QCString                  spaces;
+    static DString                  spaces;
     static bool                      generatingXmlOutput;
     static DefinesPerFileList        macroDefinitions;
     static bool                      clangAssistedParsing;
-    static QCString                  verifiedDotPath;
+    static DString                  verifiedDotPath;
     static InputFileEncodingList     inputFileEncodingList;
     static std::mutex                countFlowKeywordsMutex;
     static std::mutex                addExampleMutex;
@@ -148,7 +141,7 @@ void adjustConfiguration();
 void parseInput();
 void generateOutput();
 void cleanUpDoxygen();
-void readFileOrDirectory(const QCString &s,
+void readFileOrDirectory(const DString &s,
                         FileNameLinkedMap *fnDict,
                         StringUnorderedSet *exclSet,
                         const StringVector *patList,
@@ -156,7 +149,7 @@ void readFileOrDirectory(const QCString &s,
                         StringVector *resultList,
                         StringUnorderedSet *resultSet,
                         bool recursive,
-                        bool errorIfNotExist=TRUE,
+                        bool errorIfNotExist=true,
                         StringUnorderedSet *killSet = nullptr,
                         StringUnorderedSet *paths = nullptr
                        );

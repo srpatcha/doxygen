@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 1997-2021 by Dimitri van Heesch.
+ * Copyright (C) 1997-2026 by Dimitri van Heesch.
  *
  * Permission to use, copy, modify, and distribute this software and its
  * documentation under the terms of the GNU General Public License is hereby
@@ -26,18 +26,18 @@
 
 #include <memory>
 #include <vector>
-#include "qcstring.h"
+
 #include "construct.h"
 #include "indexlist.h"
 
 class Definition;
+class DString;
 class MemberDef;
 class TextStream;
 
-
 /** A class that generates a dynamic tree view side panel.
  */
-class FTVHelp : public IndexIntf
+class FTVHelp final : public IndexIntf
 {
   public:
     FTVHelp(bool LTI);
@@ -49,18 +49,18 @@ class FTVHelp : public IndexIntf
     void incContentsDepth();
     void decContentsDepth();
     void addContentsItem(bool isDir,
-                         const QCString &name,
-                         const QCString &ref,
-                         const QCString &file,
-                         const QCString &anchor,
+                         const DString &name,
+                         const DString &ref,
+                         const DString &file,
+                         const DString &anchor,
                          bool separateIndex,
                          bool addToNavIndex,
                          const Definition *def,
-                         const QCString &nameAsHtml=QCString());
-    void addIndexItem(const Definition *,const MemberDef *,const QCString &,const QCString &) {}
-    void addIndexFile(const QCString &) {}
-    void addImageFile(const QCString &) {}
-    void addStyleSheetFile(const QCString &) {}
+                         const DString &nameAsHtml=DString());
+    void addIndexItem(const Definition *,const MemberDef *,const DString &,const DString &) {}
+    void addIndexFile(const DString &) {}
+    void addImageFile(const DString &) {}
+    void addStyleSheetFile(const DString &) {}
     void generateTreeView();
     void generateTreeViewInline(TextStream &t);
     void generateTreeViewScripts();
@@ -74,7 +74,7 @@ constexpr auto JAVASCRIPT_LICENSE_TEXT = R"LIC(/*
 
  The MIT License (MIT)
 
- Copyright (C) 1997-2020 by Dimitri van Heesch
+ Copyright (C) 1997-2026 by Dimitri van Heesch
 
  Permission is hereby granted, free of charge, to any person obtaining a copy of this software
  and associated documentation files (the "Software"), to deal in the Software without restriction,

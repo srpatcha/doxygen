@@ -22,7 +22,7 @@ public:
    *  A token of kind 0 (`<EOF>`) should be returned on EOF.
    */
   virtual Token *getNextToken() = 0;
-  virtual void   setParser(void* parser) {};
+  virtual void   setParser(void* parser) {}
   virtual void   lexicalError() {
   	std::cerr << "Lexical error encountered." << std::endl;
   }
@@ -33,4 +33,4 @@ public:
 }
 
 #endif
-/* JavaCC - OriginalChecksum=ca665ddedf5f5b0cb69e76d90eb70fe0 (do not edit this line) */
+/* JavaCC - OriginalChecksum=7e58763dad45cd52c4e0e51f618ab41e (do not edit this line) */

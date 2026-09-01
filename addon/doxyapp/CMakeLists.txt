@@ -1,12 +1,18 @@
 find_package(Iconv)
 
 include_directories(
-	${PROJECT_SOURCE_DIR}/src
-	${PROJECT_SOURCE_DIR}/libversion
-	${GENERATED_SRC}
-	${Iconv_INCLUDE_DIRS}
-	${CLANG_INCLUDEDIR}
+        ${PROJECT_SOURCE_DIR}/src
+        ${PROJECT_SOURCE_DIR}/libversion
+        ${GENERATED_SRC}
+        ${Iconv_INCLUDE_DIRS}
+        ${CLANG_INCLUDEDIR}
 )
+if (NOT use_sys_spdlog)
+    include_directories(${PROJECT_SOURCE_DIR}/deps/spdlog/include)
+endif()
+if (NOT use_sys_fmt)
+    include_directories(${PROJECT_SOURCE_DIR}/deps/fmt/include)
+endif()
 
 add_executable(doxyapp
 doxyapp.cpp

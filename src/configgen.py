@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-# python script to generate configoptions.cpp and config.doc from config.xml
+# python script to generate variour configuration related files from config.xml
 #
-# Copyright (C) 1997-2015 by Dimitri van Heesch.
+# Copyright (C) 1997-2026 by Dimitri van Heesch.
 #
 # Permission to use, copy, modify, and distribute this software and its
 # documentation under the terms of the GNU General Public License is hereby
@@ -12,6 +12,7 @@
 # Documents produced by Doxygen are derivative works derived from the
 # input used in their production; they are not affected by this license.
 #
+import argparse
 import xml.dom.minidom
 import sys
 import re
@@ -19,6 +20,7 @@ import textwrap
 from xml.dom import Node
 import io
 import glob
+import os
 
 messages = {}
 
@@ -56,12 +58,14 @@ def transformDocs(doc):
     doc = doc.replace("\\# ", "# ")
     doc = doc.replace("-# ", "\n - ")
     doc = doc.replace(" - ", "\n - ")
-    doc = doc.replace("\\sa ", "\nSee also: ")
+    doc = doc.replace("\\sa ", "\n"+messages['seealsotxt']+" ")
     doc = doc.replace("\\par ", "\n")
-    doc = doc.replace("@note ", "\nNote: ")
-    doc = doc.replace("\\note ", "\nNote: ")
+    doc = doc.replace("@note ", "\n"+messages['notetxt']+" ")
+    doc = doc.replace("\\note ", "\n"+messages['notetxt']+" ")
     doc = doc.replace("\\verbatim", "\n")
     doc = doc.replace("\\endverbatim", "\n")
+    doc = doc.replace("<b>", "")
+    doc = doc.replace("</b>", "")
     doc = doc.replace("<code>", "")
     doc = doc.replace("</code>", "")
     doc = doc.replace("`", "")
@@ -69,6 +73,7 @@ def transformDocs(doc):
     doc = doc.replace("\\>", ">")
     doc = doc.replace("\\@", "@")
     doc = doc.replace("\\\\", "\\")
+    doc = doc.replace("@@", "@")
     # \ref name "description" -> description
     doc = re.sub('\\\\ref +[^ ]* +"\\\\ref"', '\\\\REF', doc)
     doc = re.sub('\\\\ref +[^ ]* +"([^"]*)"', '\\1', doc)
@@ -113,7 +118,7 @@ def transformDocs(doc):
     # and start string at next line
     docC = []
     for line in split_doc:
-        if (line.strip() != "<br/>"):
+        if line.strip() != "<br/>":
             docC.append(line.strip().replace('\\', '\\\\').
                     replace('"', '\\"').replace("<br>", ""))
     return docC
@@ -122,58 +127,53 @@ def transformDocs(doc):
 def collectValues(node):
     values = []
     for n in node.childNodes:
-        if (n.nodeName == "value"):
-            if n.nodeType == Node.ELEMENT_NODE:
-                if n.getAttribute('name') != "":
-                    if n.getAttribute('show_docu') != "NO":
-                        name = "<code>" + n.getAttribute('name') + "</code>"
-                        desc = n.getAttribute('desc')
-                        if (desc != ""):
-                            name += " " + desc
-                        values.append(name)
+        if n.nodeName == "value" and n.nodeType == Node.ELEMENT_NODE and n.getAttribute('name') != "" and n.getAttribute('show_docu') != "NO":
+            name = "<code>" + n.getAttribute('name') + "</code>"
+            desc = n.getAttribute('desc')
+            if desc != "":
+                name += " " + desc
+            values.append(name)
     return values
 
 
 def addValues(var, node):
     for n in node.childNodes:
-        if (n.nodeName == "value"):
-            if n.nodeType == Node.ELEMENT_NODE:
-                name = n.getAttribute('name')
-                print("  %s->addValue(\"%s\");" % (var, name))
+        if n.nodeName == "value" and n.nodeType == Node.ELEMENT_NODE:
+            name = n.getAttribute('name')
+            print(f"  {var}->addValue(\"{name}\");")
 
 
-def parseHeader(node,objName):
+def getFilter(node, mode):
+    attr = node.getAttribute('filter')
+    return not attr or mode in attr
+
+def parseHeader(node, objName, mode):
     doc = ""
     for n in node.childNodes:
-        if n.nodeType == Node.ELEMENT_NODE:
-            if (n.nodeName == "docs"):
-                if (n.getAttribute('doxyfile') != "0"):
-                    doc += parseDocs(n)
+        if n.nodeType == Node.ELEMENT_NODE and n.nodeName == "docs" and getFilter(n, mode):
+            doc += parseDocs(n)
     docC = transformDocs(doc)
-    print("  %s->setHeader(" % (objName))
+    print(f"  {objName}->setHeader(")
     rng = len(docC)
     for i in range(rng):
         line = docC[i]
         if i != rng - 1:  # since we go from 0 to rng-1
-            print("              \"%s\\n\"" % (line))
+            print(f"              \"{line}\\n\"")
         else:
-            print("              \"%s\"" % (line))
+            print(f"              \"{line}\"")
     print("             );")
 
 
-def prepCDocs(node):
+def prepCDocs(node, mode):
     type = node.getAttribute('type')
     format = node.getAttribute('format')
     defval = node.getAttribute('defval')
-    #adefval = node.getAttribute('altdefval')
     doc = ""
-    if (type != 'obsolete'):
+    if type != 'obsolete':
         for n in node.childNodes:
-            if (n.nodeName == "docs"):
-                if (n.getAttribute('doxyfile') != "0"):
-                    if n.nodeType == Node.ELEMENT_NODE:
-                        doc += parseDocs(n)
-        if (type == 'enum'):
+            if n.nodeType == Node.ELEMENT_NODE and n.nodeName == "docs" and getFilter(n, mode):
+                doc += parseDocs(n)
+        if type == 'enum':
             values = collectValues(node)
             doc += "<br/>" + messages['possible']
             rng = len(values)
@@ -185,18 +185,15 @@ def prepCDocs(node):
                     doc += "%s." % (val)
                 else:
                     doc += "%s, " % (val)
-            if (defval != ""):
+            if defval != "":
                 doc += "<br/>" + messages['defvalcode'].format(defval)
-        elif (type == 'int'):
+        elif type == 'int':
             minval = node.getAttribute('minval')
             maxval = node.getAttribute('maxval')
-            doc += messages['minmaxdef'].format(minval, maxval, defval)
-        elif (type == 'bool'):
-            if (node.hasAttribute('altdefval')):
-                doc += "<br/>" + messages['defvaltxt'].format(messages['sysdep'])
-            else:
-                doc += "<br/>" + messages['defvaltxt'].format("YES" if (defval == "1") else "NO")
-        elif (type == 'list'):
+            doc += "<br/>" + messages['minmaxdefcode'].format(minval, maxval, defval)
+        elif type == 'bool':
+            doc += "<br/>" + messages['defvalcode'].format("YES" if (defval == "1") else "NO")
+        elif type == 'list':
             if format == 'string':
                 values = collectValues(node)
                 rng = len(values)
@@ -208,7 +205,7 @@ def prepCDocs(node):
                         doc += "%s." % (val)
                     else:
                         doc += "%s, " % (val)
-        elif (type == 'string'):
+        elif type == 'string':
             if format == 'dir':
                 if defval != '':
                     doc += "<br/>" + messages['defdir'].format(defval)
@@ -236,15 +233,15 @@ def prepCDocs(node):
                 if defval != '':
                     doc += "<br/>" + messages['defvalcode'].format(defval)
         # depends handling
-        if (node.hasAttribute('depends')):
+        if node.hasAttribute('depends'):
             depends = node.getAttribute('depends')
-            doc += "<br/>" + messages['depstxt'].format(depends.lower(), depends.upper())
+            doc += "<br/>" + messages['depstxtref'].format(depends.lower(), depends.upper())
 
     docC = transformDocs(doc)
     return docC
 
 
-def parseOption(node):
+def parseOption(node, mode):
     # Handling part for Doxyfile
     name = node.getAttribute('id')
     if len(name)>23:
@@ -252,47 +249,45 @@ def parseOption(node):
     type = node.getAttribute('type')
     format = node.getAttribute('format')
     defval = node.getAttribute('defval')
-    adefval = node.getAttribute('altdefval')
     depends = node.getAttribute('depends')
     setting = node.getAttribute('setting')
     orgtype = node.getAttribute('orgtype')
-    docC = prepCDocs(node)
+    docC = prepCDocs(node, mode)
     if len(setting) > 0:
-        print("#if %s" % (setting))
+        print(f"#if {setting}")
     print("  //----")
     if type == 'bool':
-        if len(adefval) > 0:
-            enabled = adefval
-        elif defval == '1':
-            enabled = "TRUE"
+        if defval == '1':
+            enabled = "true"
         else:
-            enabled = "FALSE"
+            enabled = "false"
         print("  cb = cfg->addBool(")
-        print("             \"%s\"," % (name))
+        print(f"             \"{name}\",")
         rng = len(docC)
         for i in range(rng):
             line = docC[i]
             if i != rng - 1:  # since we go from 0 to rng-1
-                print("              \"%s\\n\"" % (line))
+                print(f"              \"{line}\\n\"")
             else:
-                print("              \"%s\"," % (line))
-        print("              %s" % (enabled))
+                print(f"              \"{line}\",")
+        print(f"              {enabled}")
         print("             );")
         if depends != '':
-            print("  cb->addDependency(\"%s\");" % (depends))
+            print(f"  cb->addDependency(\"{depends}\");")
     elif type == 'string':
         print("  cs = cfg->addString(")
-        print("              \"%s\"," % (name))
+        print(f"              \"{name}\",")
         rng = len(docC)
         for i in range(rng):
             line = docC[i]
             if i != rng - 1:  # since we go from 0 to rng-1
-                print("              \"%s\\n\"" % (line))
+                print(f"              \"{line}\\n\"")
             else:
-                print("              \"%s\"" % (line))
+                print(f"              \"{line}\"")
         print("             );")
         if defval != '':
-            print("  cs->setDefaultValue(\"%s\");" % (defval.replace('\\','\\\\')))
+            escapedDefval = defval.replace('\\','\\\\')
+            print(f"  cs->setDefaultValue(\"{escapedDefval}\");")
         if format == 'file':
             print("  cs->setWidgetType(ConfigString::File);")
         elif format == 'image':
@@ -302,49 +297,49 @@ def parseOption(node):
         elif format == 'filedir':
             print("  cs->setWidgetType(ConfigString::FileAndDir);")
         if depends != '':
-            print("  cs->addDependency(\"%s\");" % (depends))
+            print(f"  cs->addDependency(\"{depends}\");")
     elif type == 'enum':
         print("  ce = cfg->addEnum(")
-        print("              \"%s\"," % (name))
+        print(f"              \"{name}\",")
         rng = len(docC)
         for i in range(rng):
             line = docC[i]
             if i != rng - 1:  # since we go from 0 to rng-1
-                print("              \"%s\\n\"" % (line))
+                print(f"              \"{line}\\n\"")
             else:
-                print("              \"%s\"," % (line))
-        print("              \"%s\"" % (defval))
+                print(f"              \"{line}\",")
+        print(f"              \"{defval}\"")
         print("             );")
         addValues("ce", node)
         if depends != '':
-            print("  ce->addDependency(\"%s\");" % (depends))
+            print(f"  ce->addDependency(\"{depends}\");")
     elif type == 'int':
         minval = node.getAttribute('minval')
         maxval = node.getAttribute('maxval')
         print("  ci = cfg->addInt(")
-        print("              \"%s\"," % (name))
+        print(f"              \"{name}\",")
         rng = len(docC)
         for i in range(rng):
             line = docC[i]
             if i != rng - 1:  # since we go from 0 to rng-1
-                print("              \"%s\\n\"" % (line))
+                print(f"              \"{line}\\n\"")
             else:
-                print("              \"%s\"," % (line))
-        print("              %s,%s,%s" % (minval, maxval, defval))
+                print(f"              \"{line}\",")
+        print(f"              {minval},{maxval},{defval}")
         print("             );")
         if depends != '':
-            print("  ci->addDependency(\"%s\");" % (depends))
+            print(f"  ci->addDependency(\"{depends}\");")
     elif type == 'list':
         print("  cl = cfg->addList(")
-        print("              \"%s\"," % (name))
+        print(f"              \"{name}\",")
         rng = len(docC)
         for i in range(rng):
             line = docC[i]
             try:
                 if i != rng - 1:  # since we go from 0 to rng-1
-                    print("              \"%s\\n\"" % (line))
+                    print(f"              \"{line}\\n\"")
                 else:
-                    print("              \"%s\"" % (line))
+                    print(f"              \"{line}\"")
             except Exception as inst:
                 sys.stdout = sys.stderr
                 print("")
@@ -353,7 +348,7 @@ def parseOption(node):
         print("             );")
         addValues("cl", node)
         if depends != '':
-            print("  cl->addDependency(\"%s\");" % (depends))
+            print(f"  cl->addDependency(\"{depends}\");")
         if format == 'file':
             print("  cl->setWidgetType(ConfigList::File);")
         elif format == 'dir':
@@ -361,30 +356,28 @@ def parseOption(node):
         elif format == 'filedir':
             print("  cl->setWidgetType(ConfigList::FileAndDir);")
     elif type == 'obsolete':
-        print("  cfg->addObsolete(\"%s\",ConfigOption::O_%s);" % (name,orgtype.capitalize()))
+        print(f"  cfg->addObsolete(\"{name}\",ConfigOption::O_{orgtype.capitalize()});")
     if len(setting) > 0:
         print("#else")
-        print("  cfg->addDisabled(\"%s\");" % (name))
+        print(f"  cfg->addDisabled(\"{name}\");")
         print("#endif")
 
 
-def parseGroups(node):
+def parseGroups(node, mode):
     name = node.getAttribute('name')
     doc = node.getAttribute('docs')
     setting = node.getAttribute('setting')
     if len(setting) > 0:
-        print("#if %s" % (setting))
-    print("%s%s" % ("  //-----------------------------------------",
-                    "----------------------------------"))
-    print("  cfg->addInfo(\"%s\",\"%s\");" % (name, doc))
-    print("%s%s" % ("  //-----------------------------------------",
-                    "----------------------------------"))
+        print(f"#if {setting}")
+    print("  //---------------------------------------------------------------------------")
+    print(f"  cfg->addInfo(\"{name}\",\"{doc}\");")
+    print("  //---------------------------------------------------------------------------")
     if len(setting) > 0:
         print("#endif")
     print("")
     for n in node.childNodes:
         if n.nodeType == Node.ELEMENT_NODE:
-            parseOption(n)
+            parseOption(n, mode)
 
 def parseGroupMapEnums(node):
     def escape(value):
@@ -395,29 +388,29 @@ def parseGroupMapEnums(node):
             name   = n.getAttribute('id')
             defval = n.getAttribute('defval')
             if type=='enum':
-                print("\nenum class %s_t" % (name))
+                print(f"\nenum class {name}_t")
                 print("{")
                 for nv in n.childNodes:
                     if nv.nodeName == "value":
                         value = nv.getAttribute('name')
                         if value:
-                            print("  %s," % (escape(value)))
+                            print(f"  {escape(value)},")
                 print("};\n")
-                print("inline {0}_t {1}_str2enum(const QCString &s)".format(name,name))
+                print(f"inline {name}_t {name}_str2enum(const DString &s)")
                 print("{")
-                print("  QCString lc = s.lower();")
-                print("  static const std::unordered_map<std::string,{0}_t> map =".format(name))
+                print("  DString lc = s.lower();")
+                print(f"  static const std::unordered_map<std::string,{name}_t> map =")
                 print("  {")
                 for nv in n.childNodes:
                     if nv.nodeName == "value":
                         value = nv.getAttribute('name')
                         if value:
-                            print("    {{ \"{0}\", {1}_t::{2} }},".format(value.lower(),name,escape(value)))
+                            print(f"    {{ \"{value.lower()}\", {name}_t::{escape(value)} }},")
                 print("  };")
                 print("  auto it = map.find(lc.str());")
-                print("  return it!=map.end() ? it->second : {0}_t::{1};".format(name,escape(defval)))
+                print(f"  return it!=map.end() ? it->second : {name}_t::{escape(defval)};")
                 print("}\n")
-                print("inline QCString {0}_enum2str({1}_t v)".format(name,name))
+                print(f"inline DString {name}_enum2str({name}_t v)")
                 print("{")
                 print("  switch(v)")
                 print("  {")
@@ -425,41 +418,42 @@ def parseGroupMapEnums(node):
                     if nv.nodeName == "value":
                         value = nv.getAttribute('name')
                         if value:
-                            print("    case {0}_t::{1}: return \"{2}\";".format(name,escape(value),value))
+                            print(f"    case {name}_t::{escape(value)}: return \"{value}\";")
                 print("  }")
-                print("  return \"{0}\";".format(defval))
+                print(f"  return \"{defval}\";")
                 print("}")
 
 def parseGroupMapGetter(node):
-    map = { 'bool':'bool', 'string':'const QCString &', 'int':'int', 'list':'const StringVector &' }
+    map = { 'bool':'bool', 'string':'DString', 'int':'int', 'list':'StringVector' }
     for n in node.childNodes:
         if n.nodeType == Node.ELEMENT_NODE:
             setting = n.getAttribute('setting')
             if len(setting) > 0:
-                print("#if %s" % (setting))
+                print(f"#if {setting}")
             type = n.getAttribute('type')
             name = n.getAttribute('id')
             if type=='enum':
-                print("    %-22s %-30s const                  { return %s(m_%s); }" % (name+'_t',name+'()',name+'_str2enum',name))
-                print("    %-22s %-30s const                  { return m_%s; }" % ('const QCString &',name+'_str()',name))
+                print(f"    {name+'_t':<22} {name+'()':<30} const                  {{ return {name}_str2enum(m_{name}); }}")
+                print(f"    {'DString ':<22} {name+'_str()':<30} const                  {{ return m_{name}; }}")
             elif type in map:
-                print("    %-22s %-30s const                  { return m_%s; }" % (map[type],name+'()',name))
+                print(f"    {map[type]:<22} {name+'()':<30} const                  {{ return m_{name}; }}")
             if len(setting) > 0:
                 print("#endif")
 
 def parseGroupMapSetter(node):
-    map = { 'bool':'bool', 'string':'const QCString &', 'int':'int', 'list':'const StringVector &' }
+    update_map = { 'bool':'bool', 'string':'const DString &', 'int':'int', 'list':'const StringVector &' }
+    return_map = { 'bool':'bool', 'string':'DString', 'int':'int', 'list':'StringVector' }
     for n in node.childNodes:
         if n.nodeType == Node.ELEMENT_NODE:
             setting = n.getAttribute('setting')
             if len(setting) > 0:
-                print("#if %s" % (setting))
+                print(f"#if {setting}")
             type = n.getAttribute('type')
             name = n.getAttribute('id')
             if type=='enum':
-                print("    [[maybe_unused]] %-22s update_%-46s { m_%s = %s(v); return v; }" % (name+'_t',name+'('+name+'_t '+' v)',name,name+'_enum2str'))
-            elif type in map:
-                print("    [[maybe_unused]] %-22s update_%-46s { m_%s = v; return m_%s; }" % (map[type],name+'('+map[type]+' v)',name,name))
+                print(f"    [[maybe_unused]] {name+'_t':<22} update_{name+'('+name+'_t '+' v)':<46} {{ m_{name} = {name}_enum2str(v); return v; }}")
+            elif type in update_map:
+                print(f"    [[maybe_unused]] {return_map[type]:<22} update_{name+'('+update_map[type]+' v)':<46} {{ m_{name} = v; return m_{name}; }}")
             if len(setting) > 0:
                 print("#endif")
 
@@ -471,22 +465,22 @@ def parseGroupMapAvailable(node):
             name = n.getAttribute('id')
             if type=='enum':
                 if len(setting) > 0:
-                    print("#if %s" % (setting))
-                print("    %-22s isAvailable_%-41s { return v.lower() == %s_enum2str(%s_str2enum(v)).lower(); }" % ('bool',name+'(QCString v)',name,name))
+                    print(f"#if {setting}")
+                print(f"    {'bool':<22} isAvailable_{name+'(DString v)':<41} {{ return v.lower() == {name}_enum2str({name}_str2enum(v)).lower(); }}")
                 if len(setting) > 0:
                     print("#endif")
 
 def parseGroupMapVar(node):
-    map = { 'bool':'bool', 'string':'QCString', 'enum':'QCString', 'int':'int', 'list':'StringVector' }
+    map = { 'bool':'bool', 'string':'DString', 'enum':'DString', 'int':'int', 'list':'StringVector' }
     for n in node.childNodes:
         if n.nodeType == Node.ELEMENT_NODE:
             setting = n.getAttribute('setting')
             if len(setting) > 0:
-                print("#if %s" % (setting))
+                print(f"#if {setting}")
             type = n.getAttribute('type')
             name = n.getAttribute('id')
             if type in map:
-                print("    %-12s m_%s;" % (map[type],name))
+                print(f"    {map[type]:<12} m_{name};")
             if len(setting) > 0:
                 print("#endif")
 
@@ -496,11 +490,11 @@ def parseGroupInit(node):
         if n.nodeType == Node.ELEMENT_NODE:
             setting = n.getAttribute('setting')
             if len(setting) > 0:
-                print("#if %s" % (setting))
+                print(f"#if {setting}")
             type = n.getAttribute('type')
             name = n.getAttribute('id')
             if type in map:
-                print("  %-25s = ConfigImpl::instance()->get%s(__FILE__,__LINE__,\"%s\");" % ('m_'+name,map[type],name))
+                print(f"  {'m_'+name:<25} = ConfigImpl::instance()->get{map[type]}(__FILE__,__LINE__,\"{name}\");")
             if len(setting) > 0:
                 print("#endif")
 
@@ -523,63 +517,61 @@ def parseGroupMapInit(node):
         if n.nodeType == Node.ELEMENT_NODE:
             setting = n.getAttribute('setting')
             if len(setting) > 0:
-                print("#if %s" % (setting))
+                print(f"#if {setting}")
             type = n.getAttribute('type')
             name = n.getAttribute('id')
             if type in map:
+                quotedName = '"'+name+'",'
                 if type == "enum":
                     mappingStr = "{%s}" % (', '.join(getEnum2BoolMapping(n)))
-                    print("    { %-26s Info{ %-13s &ConfigValues::m_%-23s %s}}," % ('\"'+name+'\",','Info::'+map[type]+',',name+",", mappingStr))
+                    print(f"    {{ {quotedName:<26} Info{{ {'Info::'+map[type]+',':<13} &ConfigValues::m_{name+',':<23} {mappingStr}}}}},")
                 else:
-                    print("    { %-26s Info{ %-13s &ConfigValues::m_%-24s}}," % ('\"'+name+'\",','Info::'+map[type]+',',name))
+                    print(f"    {{ {quotedName:<26} Info{{ {'Info::'+map[type]+',':<13} &ConfigValues::m_{name:<24}}}}},")
             if len(setting) > 0:
                 print("#endif")
 
-def parseGroupCDocs(node):
+def parseGroupCDocs(node, mode):
     for n in node.childNodes:
         if n.nodeType == Node.ELEMENT_NODE:
             type = n.getAttribute('type')
             name = n.getAttribute('id')
-            docC = prepCDocs(n)
+            docC = prepCDocs(n, mode)
             if type != 'obsolete':
                 print("  doc->add(")
-                print("              \"%s\"," % (name))
+                print(f"              \"{name}\",")
                 rng = len(docC)
                 for i in range(rng):
                     line = docC[i]
                     if i != rng - 1:  # since we go from 0 to rng-1
-                        print("              \"%s\\n\"" % (line))
+                        print(f"              \"{line}\\n\"")
                     else:
-                        print("              \"%s\"" % (line))
+                        print(f"              \"{line}\"")
                 print("          );")
 
-def parseOptionDoc(node, first):
+def parseOptionDoc(node, first, mode):
     # Handling part for documentation
     name = node.getAttribute('id')
     type = node.getAttribute('type')
     format = node.getAttribute('format')
     defval = node.getAttribute('defval')
-    #adefval = node.getAttribute('altdefval')
     depends = node.getAttribute('depends')
     #setting = node.getAttribute('setting')
     doc = ""
-    if (type != 'obsolete'):
+    if type != 'obsolete':
         for n in node.childNodes:
-            if (n.nodeName == "docs"):
-                if (n.getAttribute('documentation') != "0"):
-                    if n.nodeType == Node.ELEMENT_NODE:
-                        doc += parseDocs(n)
-        if (first):
-            print(" \\anchor cfg_%s" % (name.lower()))
+            if n.nodeType == Node.ELEMENT_NODE and n.nodeName == "docs" and getFilter(n, mode):
+                doc += parseDocs(n)
+        if first:
+            print(f" \\anchor cfg_{name.lower()}")
             print("<dl>")
             print("")
-            print("<dt>\\c %s <dd>" % (name))
+            print(f"<dt>\\c {name} <dd>")
         else:
-            print(" \\anchor cfg_%s" % (name.lower()))
-            print("<dt>\\c %s <dd>" % (name))
-        print(" \\addindex %s" % (name))
+            print(f" \\anchor cfg_{name.lower()}")
+            print(f"<dt>\\c {name} <dd>")
+        print(f" \\addindex {name}")
         print(doc)
-        if (type == 'enum'):
+        if type == 'enum':
             values = collectValues(node)
             print("")
             print(messages['possible'])
@@ -587,45 +579,42 @@ def parseOptionDoc(node, first):
             for i in range(rng):
                 val = values[i]
                 if i == rng - 2:
-                    print("%s%s" % (val,messages['andtxt']))
+                    print(f"{val}{messages['andtxt']}")
                 elif i == rng - 1:
-                    print("%s." % (val))
+                    print(f"{val}.")
                 else:
-                    print("%s, " % (val))
-            if (defval != ""):
+                    print(f"{val}, ")
+            if defval != "":
                 print("")
                 print("")
                 print(messages['defvalcode'].format(defval))
             print("")
-        elif (type == 'int'):
+        elif type == 'int':
             minval = node.getAttribute('minval')
             maxval = node.getAttribute('maxval')
             print("")
             print("")
             print(messages['minmaxdefcode'].format(minval, maxval,defval))
             print("")
-        elif (type == 'bool'):
+        elif type == 'bool':
             print("")
             print("")
-            if (node.hasAttribute('altdefval')):
-                print(messages['defvaltxt'].format(messages['sysdep']))
-            else:
-                print(messages['defvalcode'].format("YES" if (defval == "1") else "NO"))
+            print(messages['defvalcode'].format("YES" if (defval == "1") else "NO"))
             print("")
-        elif (type == 'list'):
+        elif type == 'list':
             if format == 'string':
                 values = collectValues(node)
                 rng = len(values)
                 for i in range(rng):
                     val = values[i]
                     if i == rng - 2:
-                        print("%s%s" % (val,messages['andtxt']))
+                        print(f"{val}{messages['andtxt']}")
                     elif i == rng - 1:
-                        print("%s." % (val))
+                        print(f"{val}.")
                     else:
-                        print("%s, " % (val))
+                        print(f"{val}, ")
             print("")
-        elif (type == 'string'):
+        elif type == 'string':
             if format == 'dir':
                 if defval != '':
                     print("")
@@ -660,17 +649,17 @@ def parseOptionDoc(node, first):
                     print(messages['defvalcode'].format(defval.replace('\\','\\\\')))
             print("")
         # depends handling
-        if (node.hasAttribute('depends')):
+        if node.hasAttribute('depends'):
             depends = node.getAttribute('depends')
             print("")
-            print(messages['depstxt'].format(depends.lower(), depends.upper()))
+            print(messages['depstxtref'].format(depends.lower(), depends.upper()))
         return False
 
 
-def parseGroupsDoc(node):
+def parseGroupsDoc(node, mode):
     name = node.getAttribute('name')
     doc = node.getAttribute('docs')
-    print("\\section config_%s %s" % (name.lower(), doc))
+    print(f"\\section config_{name.lower()} {doc}")
     # Start of list has been moved to the first option for better
     # anchor placement
     #  print "<dl>"
@@ -678,8 +667,8 @@ def parseGroupsDoc(node):
     first = True
     for n in node.childNodes:
         if n.nodeType == Node.ELEMENT_NODE:
-            first = parseOptionDoc(n, first)
-    if (not first):
+            first = parseOptionDoc(n, first, mode)
+    if not first:
         print("</dl>")
 
 
@@ -702,44 +691,48 @@ def parseDocs(node):
     #doc += "<br>"
     return doc
 
-
-def parseHeaderDoc(node):
+def parseHeaderDoc(node, mode):
     doc = ""
     for n in node.childNodes:
-        if n.nodeType == Node.ELEMENT_NODE:
-            if (n.nodeName == "docs"):
-                if (n.getAttribute('documentation') != "0"):
-                    doc += parseDocs(n)
+        if n.nodeType == Node.ELEMENT_NODE and n.nodeName == "docs" and getFilter(n, mode):
+            doc += parseDocs(n)
     print(doc)
 
 
-def parseFooterDoc(node):
+def parseFooterDoc(node, mode):
     doc = ""
     for n in node.childNodes:
-        if n.nodeType == Node.ELEMENT_NODE:
-            if (n.nodeName == "docs"):
-                if (n.getAttribute('documentation') != "0"):
-                    doc += parseDocs(n)
+        if n.nodeType == Node.ELEMENT_NODE and n.nodeName == "docs" and getFilter(n, mode):
+            doc += parseDocs(n)
     print(doc)
 
 
 def parseGenerator(node):
     for n in node.childNodes:
-        if n.nodeType == Node.ELEMENT_NODE:
-            if (n.nodeName == "message"):
-                name = n.getAttribute('name')
-                doc = ""
-                for n1 in n.childNodes:
-                    if n1.nodeType == Node.TEXT_NODE:
-                        doc += n1.nodeValue.strip()
-                    elif n1.nodeType == Node.CDATA_SECTION_NODE:
-                        doc += n1.nodeValue.rstrip("\r\n").lstrip("\r\n")
-                messages[name] = doc
+        if n.nodeType == Node.ELEMENT_NODE and n.nodeName == "message":
+            name = n.getAttribute('name')
+            doc = ""
+            for n1 in n.childNodes:
+                if n1.nodeType == Node.TEXT_NODE:
+                    doc += n1.nodeValue.strip()
+                elif n1.nodeType == Node.CDATA_SECTION_NODE:
+                    doc += n1.nodeValue.rstrip("\r\n").lstrip("\r\n")
+            messages[name] = doc
 
-def collectOptions(elem):
-    """Collect all option IDs from config.xml."""
+def collectOptions(elem, mode):
+    """Collect all information from config....xml."""
     options = set()
+    messages = set()
     optionsWithElems = {}
+    attrib = {}
+    values = set()
+    head_docs = []
+
+    for header in elem.getElementsByTagName('header'):
+        for doc in header.getElementsByTagName('docs'):
+            if getFilter(doc, mode):
+                head_docs.append(doc)
+
     for group in elem.getElementsByTagName('group'):
         for option in group.getElementsByTagName('option'):
             optionId = option.getAttribute('id')
@@ -747,92 +740,396 @@ def collectOptions(elem):
             if optionId and optionType!='obsolete':
                 options.add(optionId)
                 optionsWithElems[optionId] = option
-    return (options,optionsWithElems)
+                attrib[optionId] = sorted(option.attributes.items())
+                if option.getElementsByTagName('value'):
+                    values.add(optionId)
 
-def syncLocalizedConfig(elem, translationsDir, autoSync=False):
+    for generator in elem.getElementsByTagName('generator'):
+        for message in generator.getElementsByTagName('message'):
+            messageId = message.getAttribute('name')
+            messages.add(messageId)
+
+    return (options,optionsWithElems,messages,attrib,values,head_docs)
+
+def syncWarnings(typ, existing, language):
+    missing = existing - language
+    extra = language - existing
+
+    if missing:
+        print(f"  Missing {len(missing)} {typ}: {', '.join(sorted(list(missing))[:5])}")
+        if len(missing) > 5:
+            print(f"  ... and {len(missing) - 5} more")
+
+    if extra:
+        print(f"  Extra {len(extra)} {typ} (not in original): {', '.join(sorted(list(extra))[:5])}")
+        if len(extra) > 5:
+             print(f"  ... and {len(extra) - 5} more")
+
+    if not missing and not extra:
+        print(f"  OK - all {typ} are synchronized")
+        return(False)
+
+    return(True)
+
+def syncLocalizedConfig(elem, configFile, translationsDir, autoSync=False, report=False):
     """Sync localized config_xx.xml files with original config.xml.
 
     Args:
         elem: The root element of config.xml
         translationsDir: Path to translations directory
         autoSync: If True, automatically sync; if False, only report differences
+        report: If True, if False, only report differences but for doxygen markdown file
     """
     import os
     import shutil
 
-    existingOptions, existingOptionsWithElements = collectOptions(elem)
-    print("Found %d active options in config.xml" % len(existingOptions))
+    mode = "doxyfile"
 
-    srcDir = os.path.dirname(translationsDir)
-    if os.path.basename(srcDir) == 'addon':
-        srcDir = os.path.dirname(srcDir)
-    srcDir = os.path.join(srcDir, 'src')
+    if report:
+        print("@page pg_trans_confi Translator configuration report")
+        print("```")
 
-    for configFile in sorted(glob.glob("i18n/config_*.xml")):
+    if report:
+        prt_configFile = os.path.basename(configFile)
+    else:
+        prt_configFile = configFile
+
+    existingOptions, existingOptionsWithElements, existingMessages, existingAttrib, existingValues, existingHeader = collectOptions(elem, mode)
+    print(f"Found {len(existingOptions)} active options in {prt_configFile}")
+    print(f"Found {len(existingMessages)} active messages in {prt_configFile}")
+
+    translationFiles = sorted(glob.glob("%s/config_*.xml" % translationsDir))
+    if not translationFiles:
+        print(f"No translation config file in {translationsDir}")
+
+    for configFile in translationFiles:
+
+        if report:
+            prt_configFile = os.path.basename(configFile)
+        else:
+            prt_configFile = configFile
 
         if not os.path.exists(configFile):
-            print("Skipping %s: config file not found" % configFile)
+            print(f"Skipping {prt_configFile}: translation config file not found")
             continue
 
-        print("Processing %s..." % configFile)
+        print(f"Processing {prt_configFile}...")
 
         try:
             with io.open(configFile, 'r', encoding='utf8') as f:
                 content = f.read()
             langDoc = xml.dom.minidom.parseString(content)
         except Exception as e:
-            print("  Error parsing %s: %s" % (configFile, e))
+            print(f"  Error parsing {prt_configFile}: {e}")
             continue
 
-        langOptions = set()
-        langOptionsWithElements = {}
-        for group in langDoc.getElementsByTagName('group'):
-            for option in group.getElementsByTagName('option'):
-                optionId = option.getAttribute('id')
-                if optionId:
-                    langOptions.add(optionId)
-                    langOptionsWithElements[optionId] = option
+        langOptions, langOptionsWithElements, langMessages, langAttrib, langValues, headerDocs = collectOptions(langDoc, mode)
 
-        missingOptions = existingOptions - langOptions
+        headerError = len(existingHeader) - len(headerDocs)
+
+        if not headerError:
+            print("  OK - header documentation is synchronized")
+        elif headerError < 0:
+            print("  Extra header documentation in translation")
+        else:
+            print("  Header documentation not (all) has been translated")
+
+        optionsError = syncWarnings('Options', existingOptions, langOptions)
+        messagesError = syncWarnings('Messages', existingMessages, langMessages)
+
+        # attributes handling
         extraOptions = langOptions - existingOptions
+        langMatch = langOptions - extraOptions
+        attribError = set()
+        for optionId in langMatch:
+            missingAttrib = set(existingAttrib[optionId]) - set(langAttrib[optionId])
+            extraAttrib = set(langAttrib[optionId]) - set(existingAttrib[optionId])
+            if missingAttrib:
+                attribError.add(optionId)
+                print(f"  Missing {len(missingAttrib)} attributes for {optionId}")
 
-        if missingOptions:
-            print("  Missing %d options: %s" % (len(missingOptions), ', '.join(sorted(list(missingOptions))[:5])))
-            if len(missingOptions) > 5:
-                print("  ... and %d more" % (len(missingOptions) - 5))
+            if extraAttrib:
+                attribError.add(optionId)
+                print(f"  Extra {len(extraAttrib)} attributes for {optionId}")
+        if not attribError:
+            print("  OK - all attributes are synchronized")
 
-        if extraOptions:
-            print("  Extra %d options (not in original): %s" % (len(extraOptions), ', '.join(sorted(list(extraOptions))[:5])))
-            if len(extraOptions) > 5:
-                print("  ... and %d more" % (len(extraOptions) - 5))
+        # values handling
+        valuesError = False
+        # we only need options that are also in the original
+        langValues = langValues - extraOptions
+        # language options that should have values
+        missingAllValues = existingValues - langValues
+        if missingAllValues:
+            print(f"  Missing {len(missingAllValues)} all values: {', '.join(sorted(list(missingAllValues))[:5])}")
+            if len(missingAllValues) > 5:
+                print(f"  ... and {len(missingAllValues) - 5} more")
+            valuesError = True
+        # language options that should have no values
+        extraAllValues = langValues - existingValues
+        if extraAllValues:
+            print(f"  Extra {len(extraAllValues)} all values: {', '.join(sorted(list(extraAllValues))[:5])}")
+            if len(extraAllValues) > 5:
+                print(f"  ... and {len(extraAllValues) - 5} more")
+            valuesError = True
 
-        if not missingOptions and not extraOptions:
-            print("  OK - all options synchronized")
-            continue
+        # both have values, some further investigations
+        bothValues = existingValues - missingAllValues
+        # partial extra / missing attr
+        bothError = set()
+        for optionId in bothValues:
+            optionElem = existingOptionsWithElements[optionId]
+            langElem = langOptionsWithElements[optionId]
+            optValues = set()
+            langValues = set()
+            for optValue in optionElem.getElementsByTagName('value'):
+                 optValues.add(optValue.getAttribute('name'))
+            for langValue in langElem.getElementsByTagName('value'):
+                 langValues.add(langValue.getAttribute('name'))
+            missingValues = optValues - langValues
+            missingLen = len(missingValues)
+            extraLen = len(langValues - optValues)
+            if missingLen:
+                print(f"  Missing {missingLen} values for {optionId}")
+                bothError.add(optionId)
+            if extraLen:
+                print(f"  Extra {extraLen} values for {optionId}")
+                bothError.add(optionId)
+            # both have value elements
+            bothName = optValues - missingValues
+            for name in bothName:
+                toCorrect = False
+                for optValue in optionElem.getElementsByTagName('value'):
+                    if optValue.getAttribute('name') == name:
+                        optAttr = set(optValue.attributes.items())
+                        break
+                for langValue in langElem.getElementsByTagName('value'):
+                    if langValue.getAttribute('name') == name:
+                        langAttr = set(langValue.attributes.items())
+                        break
+                missing = optAttr - langAttr
+                extra = langAttr - optAttr
+                if missing or extra:
+                    if len(missing) == 1 and len(extra) == 1:
+                        for attr, dummy in missing:
+                            missAttr = attr
+                            break
+                        for attr, dummy in extra:
+                            extraAttr = attr
+                            break
+                        if missAttr != 'desc' or extraAttr != 'desc':
+                           bothError.add(optionId)
+                           toCorrect = True
+                    else:
+                        bothError.add(optionId)
+                        toCorrect = True
+                if toCorrect:
+                    print(f"  Differences in attributes for value with name {name} for {optionId}")
 
-        if autoSync and (missingOptions or extraOptions):
+        if not (valuesError or bothError):
+            print("  OK - all values are synchronized")
+
+
+        if autoSync and (optionsError or messagesError or attribError or valuesError or bothError or headerError):
             print("  Auto-syncing...")
 
             rootElement = langDoc.documentElement
+
+            if headerError < 0:
+                print("    Extra header documentation in translation")
+                print("      Leaving translated file unchanged (unknown what to remove)")
+            elif headerError > 0:
+                head = None
+                for header in rootElement.getElementsByTagName('header'):
+                  head = header
+                  break;
+                if not head:
+                    # add header element
+                    head = langDoc.createElement("header")
+                    langDoc.childNodes[0].appendChild(head)
+
+                for doc in existingHeader:
+                    head.appendChild(doc)
+                print("    Header documentation not (all) has been translated")
+                print(f"      Added all original headers containing filter: {mode}")
+
+            missingOptions = existingOptions - langOptions
+            extraOptions = langOptions - existingOptions
+
+            parentGroupNew = None
+            for group in langDoc.getElementsByTagName('group'):
+                parentGroupNew = group
+                break
+
+            if not parentGroupNew:
+                # add group element
+                parentGroupNew = langDoc.createElement("group")
+                langDoc.childNodes[0].appendChild(parentGroupNew)
 
             for optionId in extraOptions:
                 optionElem = langOptionsWithElements[optionId]
                 parentGroup = optionElem.parentNode
                 parentGroup.removeChild(optionElem)
-                print("    Removed: %s" % optionId)
+                print(f"    Removed: {optionId}")
 
             for optionId in missingOptions:
                 optionElem = existingOptionsWithElements[optionId]
                 importedElem = langDoc.importNode(optionElem, True)
+                parentGroupName = optionElem.parentNode.getAttribute('name')
 
-                parentGroup = None
+                parentGroupNew = None
                 for group in rootElement.getElementsByTagName('group'):
-                    parentGroup = group
+                    parentGroupNew = group
                     break
+                for group in rootElement.getElementsByTagName('group'):
+                    if group.getAttribute('name') == parentGroupName:
+                        parentGroupNew = group
+                        break
 
-                if parentGroup:
-                    parentGroup.appendChild(importedElem)
-                    print("    Added: %s" % optionId)
+                if parentGroupNew:
+                    parentGroupNew.appendChild(importedElem)
+                    print(f"    Added: {optionId}")
+
+            # handle option attributes
+            for optionId in attribError:
+                existingElem = existingOptionsWithElements[optionId]
+                langElem = langOptionsWithElements[optionId]
+                for attr,val in langElem.attributes.items():
+                    langElem.removeAttribute(attr)
+                for attr,val in existingElem.attributes.items():
+                    langElem.setAttribute(attr,val)
+
+            # handle values
+            for optionId in extraAllValues:
+                optionElem = langOptionsWithElements[optionId]
+                for valueElem in optionElem.getElementsByTagName('value'):
+                    optionElem.removeChild(valueElem)
+                print(f"    Removed all values of: {optionId}")
+
+            for optionId in missingAllValues:
+                if optionId in langOptionsWithElements:
+                    existingElem = existingOptionsWithElements[optionId]
+                    langElem = langOptionsWithElements[optionId]
+                    for valueElem in existingElem.getElementsByTagName('value'):
+                        importedElem = langDoc.importNode(valueElem, True)
+                        langElem.appendChild(importedElem)
+                    print(f"    Added all values for: {optionId}")
+
+            # handle bothValue errors
+            for optionId in bothError:
+                optionElem = existingOptionsWithElements[optionId]
+                langElem = langOptionsWithElements[optionId]
+                optValues = set()
+                langValues = set()
+                for optValue in optionElem.getElementsByTagName('value'):
+                     optValues.add(optValue.getAttribute('name'))
+                for langValue in langElem.getElementsByTagName('value'):
+                     langValues.add(langValue.getAttribute('name'))
+                missing = optValues - langValues
+                extra = langValues - optValues
+                existingElem = existingOptionsWithElements[optionId]
+                langElem = langOptionsWithElements[optionId]
+                if missing:
+                    for miss in missing:
+                        for allVal in existingElem.getElementsByTagName('value'):
+                            if allVal.getAttribute('name') == miss:
+                                importedElem = langDoc.importNode(allVal, True)
+                                langElem.appendChild(importedElem)
+                                print(f"    Added: value {miss} of {optionId}")
+                if extra:
+                    for extr in extra:
+                        for allVal in langElem.getElementsByTagName('value'):
+                            if allVal.getAttribute('name') == extr:
+                                langElem.removeChild(allVal)
+                                print(f"    Removed: value {extr} of {optionId}")
+
+                # both have value elements
+                bothName = optValues - missing
+                for name in bothName:
+                    toCorrect = False
+                    for optValue in optionElem.getElementsByTagName('value'):
+                        if optValue.getAttribute('name') == name:
+                            optAttr = set(optValue.attributes.items())
+                            break
+                    for langValue in langElem.getElementsByTagName('value'):
+                        if langValue.getAttribute('name') == name:
+                            langAttr = set(langValue.attributes.items())
+                            break
+                    missing = optAttr - langAttr
+                    extra = langAttr - optAttr
+                    if missing or extra:
+                        if len(missing) == 1 and len(extra) == 1:
+                            for attr, dummy in missing:
+                                missAttr = attr
+                                break
+                            for attr, dummy in extra:
+                                extraAttr = attr
+                                break
+                            if missAttr != 'desc' or extraAttr != 'desc':
+                               toCorrect = True
+                        else:
+                            toCorrect = True
+
+                    if toCorrect:
+                        optHasDesc = False
+                        for optValue in optionElem.getElementsByTagName('value'):
+                            if optValue.getAttribute('name') == name:
+                                for attr, dummy in optValue.attributes.items():
+                                    if attr == 'desc':
+                                        optHasDesc = True
+                                        break
+                                break
+                        langHasDesc = False
+                        for langValue in langElem.getElementsByTagName('value'):
+                            if langValue.getAttribute('name') == name:
+                                for attr, dummy in langValue.attributes.items():
+                                    if attr == 'desc':
+                                        langHasDesc = True
+                                        break
+                                break
+                        for langValue in langElem.getElementsByTagName('value'):
+                            if langValue.getAttribute('name') == name:
+                                for attr, dummy in langValue.attributes.items():
+                                    if attr != 'desc' or not optHasDesc:
+                                        langValue.removeAttribute(attr)
+                                lang = langValue
+                                break
+                        for optValue in optionElem.getElementsByTagName('value'):
+                            if optValue.getAttribute('name') == name:
+                                for attr, val in optValue.attributes.items():
+                                    if attr != 'desc' or not langHasDesc:
+                                        lang.setAttribute(attr,val)
+                                break
+
+
+            # handle generator / messages
+            missingMessages = existingMessages - langMessages
+            extraMessages = langMessages - existingMessages
+
+            parentGeneratorNew = None
+            for generator in langDoc.getElementsByTagName('generator'):
+                parentGeneratorNew = generator
+
+            if not parentGeneratorNew:
+                    # add generator element
+                    parentGeneratorNew = langDoc.createElement("generator")
+                    langDoc.childNodes[0].appendChild(parentGeneratorNew)
+
+            for messageId in extraMessages:
+                for message in parentGeneratorNew.getElementsByTagName('message'):
+                    if messageId == message.getAttribute('name'):
+                        parentGeneratorNew.removeChild(message)
+                        print(f"    Removed: {messageId}")
+
+            for generator in elem.getElementsByTagName('generator'):
+                parentGenerator = generator
+
+            for messageId in missingMessages:
+                for message in parentGenerator.getElementsByTagName('message'):
+                    if messageId == message.getAttribute('name'):
+                        importedElem = langDoc.importNode(message, True)
+                        parentGeneratorNew.appendChild(importedElem)
+                        print(f"    Added: {messageId}")
 
             backupFile = configFile + ".bak"
             shutil.copy2(configFile, backupFile)
@@ -841,22 +1138,34 @@ def syncLocalizedConfig(elem, translationsDir, autoSync=False):
             outputStr = outputContent.decode('utf-8') if isinstance(outputContent, bytes) else outputContent
 
             lines = outputStr.split('\n')
-            filteredLines = [line for line in lines if line.strip()]
-            outputStr = '\n'.join(filteredLines)
+            filteredLines = re.sub("> *\n *\n *\n",">\n","\n".join(lines));
+            filteredLines = re.sub("> *\n *\n",">\n",filteredLines);
 
             with io.open(configFile, 'w', encoding='utf8') as f:
-                f.write(outputStr)
+                f.write(filteredLines)
 
-            print("  Backup saved to: %s" % backupFile)
-            print("  File updated: %s" % configFile)
+            print(f"  Backup saved to: {backupFile}")
+            print(f"  File updated: {configFile}")
 
-    print("\nSync %s!" % ("complete" if not autoSync else "and update complete"))
+    if report:
+        print("```")
+    else:
+        print(f"\nSync {'complete' if not autoSync else 'and update complete'}!")
 
 def main():
-    if len(sys.argv)<3 or (sys.argv[1] not in ['-doc','-cpp','-wiz','-maph','-maps','-sync']):
-        sys.exit('Usage: %s -doc|-cpp|-wiz|-maph|-maps|-sync config.xml [translations_dir]' % sys.argv[0])
+    modes = ['-doc','-cpp','-wiz','-wizswitch','-maph','-maps','-sync','-report','-auto']
+    parser = argparse.ArgumentParser(add_help=False,
+            usage='%(prog)s -doc|-cpp|-wiz|-wizswitch|-maph|-maps|-sync|-report|-auto config.xml [translations_dir]')
+    modeGroup = parser.add_mutually_exclusive_group(required=True)
+    for opt in modes:
+        modeGroup.add_argument(opt, dest='mode', action='store_const', const=opt)
+    parser.add_argument('files', nargs='+')
+    args = parser.parse_args()
+    mode = args.mode
+    files = args.files
+
     try:
-        configFile = sys.argv[2]
+        configFile = files[0]
         if sys.version_info.major == 2:
             fh = open(configFile,'r')
         else:
@@ -872,76 +1181,76 @@ def main():
     elem = doc.documentElement
 
     for n in elem.childNodes:
-        if n.nodeType == Node.ELEMENT_NODE:
-            if (n.nodeName == "generator"):
-                parseGenerator(n)
+        if n.nodeType == Node.ELEMENT_NODE and n.nodeName == "generator":
+            parseGenerator(n)
     if len(messages)==0:
         sys.exit('<generator> section missing in %s' % configFile)
 
-    if (sys.argv[1] == "-doc"):
+    if mode == "-doc":
+        mode = "documentation"
         print("/* WARNING: This file is generated!")
-        print(" * Do not edit this file, but edit config.xml instead and run")
-        print(" * python configgen.py -doc config.xml to regenerate this file!")
+        print(f" * Do not edit this file, but edit {configFile} instead and run")
+        print(f" * python configgen.py -doc {configFile} to regenerate this file!")
         print(" */")
         # process header
+        foundHeader = False
+        foundFooter = False
         for n in elem.childNodes:
-            if n.nodeType == Node.ELEMENT_NODE:
-                if (n.nodeName == "header"):
-                    parseHeaderDoc(n)
+            if n.nodeType == Node.ELEMENT_NODE and n.nodeName == "header":
+                foundHeader = True
+                parseHeaderDoc(n, mode)
+        if not foundHeader:
+            print(f"/*! \\page {re.sub('.xml','',os.path.basename(configFile))}")
         # generate list with all commands
         commandsList = ()
         for n in elem.childNodes:
-            if n.nodeType == Node.ELEMENT_NODE:
-                if (n.nodeName == "group"):
-                    commandsList = parseGroupsList(n, commandsList)
+            if n.nodeType == Node.ELEMENT_NODE and n.nodeName == "group":
+                commandsList = parseGroupsList(n, commandsList)
         print("\\secreflist")
         for x in sorted(commandsList):
-            print("\\refitem cfg_%s %s" % (x.lower(), x))
+            print(f"\\refitem cfg_{x.lower()} {x}")
         print("\\endsecreflist")
         # process groups and options
         for n in elem.childNodes:
-            if n.nodeType == Node.ELEMENT_NODE:
-                if (n.nodeName == "group"):
-                    parseGroupsDoc(n)
+            if n.nodeType == Node.ELEMENT_NODE and n.nodeName == "group":
+                parseGroupsDoc(n, mode)
         # process footers
         for n in elem.childNodes:
-            if n.nodeType == Node.ELEMENT_NODE:
-                if (n.nodeName == "footer"):
-                    parseFooterDoc(n)
-    elif (sys.argv[1] == "-maph"):
+            if n.nodeType == Node.ELEMENT_NODE and n.nodeName == "footer":
+                foundFooter = True
+                parseFooterDoc(n, mode)
+        if not foundFooter:
+            print("*/")
+    elif mode == "-maph":
         print("/* WARNING: This file is generated!")
-        print(" * Do not edit this file, but edit config.xml instead and run")
-        print(" * python configgen.py -map config.xml to regenerate this file!")
+        print(f" * Do not edit this file, but edit {configFile} instead and run")
+        print(f" * python configgen.py -maph {configFile} to regenerate this file!")
         print(" */")
         print("#ifndef CONFIGVALUES_H")
         print("#define CONFIGVALUES_H")
         print("")
         print("#include <string>")
         print("#include <unordered_map>")
-        print("#include \"qcstring.h\"")
+        print("#include \"dstring.h\"")
         print("#include \"containers.h\"")
         print("#include \"settings.h\"")
         for n in elem.childNodes:
-            if n.nodeType == Node.ELEMENT_NODE:
-                if n.nodeName == "group":
-                    parseGroupMapEnums(n)
+            if n.nodeType == Node.ELEMENT_NODE and n.nodeName == "group":
+                parseGroupMapEnums(n)
         print("")
         print("class ConfigValues")
         print("{")
         print("  public:")
         print("    static ConfigValues &instance() { static ConfigValues theInstance; return theInstance; }")
         for n in elem.childNodes:
-            if n.nodeType == Node.ELEMENT_NODE:
-                if n.nodeName == "group":
-                    parseGroupMapGetter(n)
+            if n.nodeType == Node.ELEMENT_NODE and n.nodeName == "group":
+                parseGroupMapGetter(n)
         for n in elem.childNodes:
-            if n.nodeType == Node.ELEMENT_NODE:
-                if n.nodeName == "group":
-                    parseGroupMapSetter(n)
+            if n.nodeType == Node.ELEMENT_NODE and n.nodeName == "group":
+                parseGroupMapSetter(n)
         for n in elem.childNodes:
-            if n.nodeType == Node.ELEMENT_NODE:
-                if n.nodeName == "group":
-                    parseGroupMapAvailable(n)
+            if n.nodeType == Node.ELEMENT_NODE and n.nodeName == "group":
+                parseGroupMapAvailable(n)
         print("    void init();")
         print("    StringVector fields() const;")
         print("    struct Info")
@@ -950,51 +1259,49 @@ def main():
         print("      using Enum2BoolMap = std::unordered_map<std::string,bool>;")
         print("      Info(Type t,bool         ConfigValues::*b) : type(t), value(b) {}")
         print("      Info(Type t,int          ConfigValues::*i) : type(t), value(i) {}")
-        print("      Info(Type t,QCString     ConfigValues::*s, const Enum2BoolMap &boolMap = {}) : type(t), value(s), m_boolMap(boolMap) {}")
+        print("      Info(Type t,DString     ConfigValues::*s, const Enum2BoolMap &boolMap = {}) : type(t), value(s), m_boolMap(boolMap) {}")
         print("      Info(Type t,StringVector ConfigValues::*l) : type(t), value(l) {}")
         print("      Type type;")
         print("      union Item")
         print("      {")
         print("        Item(bool         ConfigValues::*v) : b(v) {}")
         print("        Item(int          ConfigValues::*v) : i(v) {}")
-        print("        Item(QCString     ConfigValues::*v) : s(v) {}")
+        print("        Item(DString     ConfigValues::*v) : s(v) {}")
         print("        Item(StringVector ConfigValues::*v) : l(v) {}")
         print("        bool         ConfigValues::*b;")
         print("        int          ConfigValues::*i;")
-        print("        QCString     ConfigValues::*s;")
+        print("        DString     ConfigValues::*s;")
         print("        StringVector ConfigValues::*l;")
         print("      } value;")
         print("      bool getBooleanRepresentation() const;")
         print("    private:")
         print("      Enum2BoolMap m_boolMap;")
         print("    };")
-        print("    const Info *get(const QCString &tag) const;")
+        print("    const Info *get(const DString &tag) const;")
         print("")
         print("  private:")
         for n in elem.childNodes:
-            if n.nodeType == Node.ELEMENT_NODE:
-                if (n.nodeName == "group"):
-                    parseGroupMapVar(n)
+            if n.nodeType == Node.ELEMENT_NODE and n.nodeName == "group":
+                parseGroupMapVar(n)
         print("};")
         print("")
         print("#endif")
-    elif (sys.argv[1] == "-maps"):
+    elif mode == "-maps":
         print("/* WARNING: This file is generated!")
-        print(" * Do not edit this file, but edit config.xml instead and run")
-        print(" * python configgen.py -maps config.xml to regenerate this file!")
+        print(f" * Do not edit this file, but edit {configFile} instead and run")
+        print(f" * python configgen.py -maps {configFile} to regenerate this file!")
         print(" */")
         print("#include \"configvalues.h\"")
         print("#include \"configimpl.h\"")
         print("#include <unordered_map>")
         print("")
-        print("const ConfigValues::Info *ConfigValues::get(const QCString &tag) const")
+        print("const ConfigValues::Info *ConfigValues::get(const DString &tag) const")
         print("{")
         print("  static const std::unordered_map< std::string, Info > configMap =")
         print("  {")
         for n in elem.childNodes:
-            if n.nodeType == Node.ELEMENT_NODE:
-                if (n.nodeName == "group"):
-                    parseGroupMapInit(n)
+            if n.nodeType == Node.ELEMENT_NODE and n.nodeName == "group":
+                parseGroupMapInit(n)
         print("  };")
         print("  auto it = configMap.find(tag.str());")
         print("  return it!=configMap.end() ? &it->second : nullptr;")
@@ -1002,14 +1309,13 @@ def main():
         print("")
         print("void ConfigValues::init()")
         print("{")
-        print("  static bool first = TRUE;")
+        print("  static bool first = true;")
         print("  if (!first) return;")
-        print("  first = FALSE;")
+        print("  first = false;")
         print("")
         for n in elem.childNodes:
-            if n.nodeType == Node.ELEMENT_NODE:
-                if (n.nodeName == "group"):
-                    parseGroupInit(n)
+            if n.nodeType == Node.ELEMENT_NODE and n.nodeName == "group":
+                parseGroupInit(n)
         print("}")
         print("")
         print("StringVector ConfigValues::fields() const")
@@ -1017,17 +1323,16 @@ def main():
         print("  return {")
         first=True
         for n in elem.childNodes:
-            if n.nodeType == Node.ELEMENT_NODE:
-                if (n.nodeName == "group"):
-                    for c in n.childNodes:
-                        if c.nodeType == Node.ELEMENT_NODE:
-                            name = c.getAttribute('id')
-                            type = c.getAttribute('type')
-                            if type!='obsolete':
-                                if not first:
-                                    print(",")
-                                first=False
-                                sys.stdout.write('    "'+name+'"')
+            if n.nodeType == Node.ELEMENT_NODE and n.nodeName == "group":
+                for c in n.childNodes:
+                    if c.nodeType == Node.ELEMENT_NODE:
+                        name = c.getAttribute('id')
+                        type = c.getAttribute('type')
+                        if type!='obsolete':
+                            if not first:
+                                print(",")
+                            first=False
+                            sys.stdout.write('    "'+name+'"')
         print("")
         print("  };")
         print("}")
@@ -1045,10 +1350,11 @@ def main():
         print("  return false;")
         print("}")
         print("")
-    elif (sys.argv[1] == "-cpp"):
+    elif mode == "-cpp":
+        mode = "doxyfile"
         print("/* WARNING: This file is generated!")
-        print(" * Do not edit this file, but edit config.xml instead and run")
-        print(" * python configgen.py -cpp config.xml to regenerate this file!")
+        print(f" * Do not edit this file, but edit {configFile} instead and run")
+        print(f" * python configgen.py -cpp {configFile} to regenerate this file!")
         print(" */")
         print("")
         print("#include \"configoptions.h\"")
@@ -1066,39 +1372,64 @@ def main():
         print("")
         # process header
         for n in elem.childNodes:
-            if n.nodeType == Node.ELEMENT_NODE:
-                if (n.nodeName == "header"):
-                    parseHeader(n,'cfg')
+            if n.nodeType == Node.ELEMENT_NODE and n.nodeName == "header":
+                parseHeader(n,'cfg', mode)
         for n in elem.childNodes:
-            if n.nodeType == Node.ELEMENT_NODE:
-                if (n.nodeName == "group"):
-                    parseGroups(n)
+            if n.nodeType == Node.ELEMENT_NODE and n.nodeName == "group":
+                parseGroups(n, mode)
         print("}")
-    elif (sys.argv[1] == "-wiz"):
+    elif mode == "-wiz":
+        mode = "doxywizard"
+        configFile = files[0]
+        locale = re.sub('.*config', '', configFile)
+        locale = re.sub('.xml', '', locale)
         print("/* WARNING: This file is generated!")
-        print(" * Do not edit this file, but edit config.xml instead and run")
-        print(" * python configgen.py -wiz config.xml to regenerate this file!")
+        print(f" * Do not edit this file, but edit {configFile} instead and run")
+        print(f" * python configgen.py -wiz {configFile} to regenerate this file!")
         print(" */")
         print("#include \"configdoc.h\"")
         print("#include \"docintf.h\"")
         print("")
-        print("void addConfigDocs(DocIntf *doc)")
+
+        print(f"void addConfigDocs{locale}(DocIntf *doc)")
         print("{")
         for n in elem.childNodes:
-            if n.nodeType == Node.ELEMENT_NODE:
-                if (n.nodeName == "header"):
-                    parseHeader(n,'doc')
+            if n.nodeType == Node.ELEMENT_NODE and n.nodeName == "header":
+                parseHeader(n,'doc', mode)
         for n in elem.childNodes:
-            if n.nodeType == Node.ELEMENT_NODE:
-                if (n.nodeName == "group"):
-                    parseGroupCDocs(n)
+            if n.nodeType == Node.ELEMENT_NODE and n.nodeName == "group":
+                parseGroupCDocs(n, mode)
         print("}")
-    elif (sys.argv[1] == "-sync"):
-        if len(sys.argv) < 3:
-            sys.exit('Usage: %s -sync config.xml translations_dir [--auto]' % sys.argv[0])
-        translationsDir = sys.argv[3]
-        autoSync = '--auto' in sys.argv
-        syncLocalizedConfig(elem, translationsDir, autoSync)
+    elif mode == "-wizswitch":
+        print("#ifndef CONFIGSWITCHER_H")
+        print("#define CONFIGSWITCHER_H")
+        print("")
+        print("using LangFunc = void (*)(DocIntf *);")
+        print("")
+        for x in files:
+            locale = re.sub('.*config', '', x)
+            locale = re.sub('.xml', '', locale)
+            print(f"void addConfigDocs{locale}(DocIntf *doc);")
+        print("")
+        print("static const std::unordered_map<std::string,LangFunc> langNames =")
+        print("{")
+        for x in files:
+            locale = re.sub('.*config_', '', x)
+            locale = re.sub('.*config', '', locale)
+            locale = re.sub('.xml', '', locale)
+            if not locale:
+                print('  { "en", addConfigDocs},')
+            else:
+                print(f'  {{ "{locale}", addConfigDocs_{locale}}},')
+        print("};")
+        print("")
+        print("#endif")
+    elif mode == "-sync" or mode == "-report" or mode == "-auto":
+        if len(files) < 2:
+            translationsDir = 'i18n'
+        else:
+            translationsDir = files[1]
+        syncLocalizedConfig(elem, configFile, translationsDir, mode == "-auto", mode == "-report")
 
 if __name__ == '__main__':
     main()

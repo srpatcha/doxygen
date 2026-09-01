@@ -1,8 +1,6 @@
 /******************************************************************************
  *
- *
- *
- * Copyright (C) 1997-2015 by Dimitri van Heesch.
+ * Copyright (C) 1997-2026 by Dimitri van Heesch.
  *
  * Permission to use, copy, modify, and distribute this software and its
  * documentation under the terms of the GNU General Public License is hereby
@@ -26,11 +24,11 @@
 
 #include <memory>
 
-#include "qcstring.h"
 #include "construct.h"
 #include "indexlist.h"
 
 /* -- forward declarations */
+class DString;
 class Definition;
 class MemberDef;
 
@@ -40,7 +38,7 @@ class MemberDef;
  * These files can be used to generate a help plugin readable
  * by the Eclipse IDE.
  */
-class EclipseHelp : public IndexIntf
+class EclipseHelp final : public IndexIntf
 {
   public:
     EclipseHelp();
@@ -52,14 +50,14 @@ class EclipseHelp : public IndexIntf
     virtual void finalize();
     virtual void incContentsDepth();
     virtual void decContentsDepth();
-    virtual void addContentsItem(bool isDir, const QCString &name, const QCString &ref,
-                                 const QCString &file, const QCString &anchor,bool separateIndex,bool addToNavIndex,
-                                 const Definition *def, const QCString &nameAsHtml);
+    virtual void addContentsItem(bool isDir, const DString &name, const DString &ref,
+                                 const DString &file, const DString &anchor,bool separateIndex,bool addToNavIndex,
+                                 const Definition *def, const DString &nameAsHtml);
     virtual void addIndexItem(const Definition *context,const MemberDef *md,
-                              const QCString &sectionAnchor,const QCString &title);
-    virtual void addIndexFile(const QCString &name);
-    virtual void addImageFile(const QCString &name);
-    virtual void addStyleSheetFile(const QCString &name);
+                              const DString &sectionAnchor,const DString &title);
+    virtual void addIndexFile(const DString &name);
+    virtual void addImageFile(const DString &name);
+    virtual void addStyleSheetFile(const DString &name);
 
   private:
     struct Private;

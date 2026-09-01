@@ -1,9 +1,6 @@
 /******************************************************************************
  *
- *
- *
- *
- * Copyright (C) 1997-2015 by Dimitri van Heesch.
+ * Copyright (C) 1997-2026 by Dimitri van Heesch.
  *
  * Permission to use, copy, modify, and distribute this software and its
  * documentation under the terms of the GNU General Public License is hereby
@@ -16,12 +13,13 @@
  *
  */
 
+// own header
 #include "textdocvisitor.h"
-#include "message.h"
-#include "util.h"
-#include "htmlentity.h"
-#include "cite.h"
+
+// other headers
 #include "emoji.h"
+#include "htmlentity.h"
+#include "message.h"
 
 //-------------------------------------------------------------------------
 
@@ -34,7 +32,7 @@ void TextDocVisitor::operator()(const DocSymbol &s)
   }
   else
   {
-    err("text: non supported HTML-entity found: {}\n",HtmlEntityMapper::instance().html(s.symbol(),TRUE));
+    err("text: non supported HTML-entity found: {}\n",HtmlEntityMapper::instance().html(s.symbol(),true));
   }
 }
 
@@ -72,10 +70,10 @@ void TextDocVisitor::operator()(const DocEmoji &s)
 
 void TextDocVisitor::operator()(const DocCite &cite)
 {
-  if (!cite.file().isEmpty())
+  if (!cite.file().empty())
   {
-    QCString anchor = cite.anchor();
-    QCString anchorPrefix = CitationManager::instance().anchorPrefix();
+    DString anchor = cite.anchor();
+    DString anchorPrefix = CitationManager::instance().anchorPrefix();
     anchor = anchor.mid(anchorPrefix.length()); // strip prefix
     m_t << anchor;
   }
@@ -85,9 +83,9 @@ void TextDocVisitor::operator()(const DocCite &cite)
   }
 }
 
-void TextDocVisitor::filter(const QCString &str)
+void TextDocVisitor::filter(const DString &str)
 {
-  if (str.isEmpty()) return;
+  if (str.empty()) return;
   //printf("TextDocVisitor::filter(%s)\n",str);
   const char *p=str.data();
   while (*p)

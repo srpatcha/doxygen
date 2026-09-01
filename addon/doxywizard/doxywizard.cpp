@@ -41,6 +41,7 @@
 #include <QScrollBar>
 #include <QLocale>
 #include <QTranslator>
+#include <QList>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -51,6 +52,7 @@
 // globally accessible variables
 bool DoxygenWizard::debugFlag = false;
 QString DoxygenWizard::langCode;
+static QList<QString> newArgs;
 
 const int messageTimeout = 5000; //!< status bar message timeout in milliseconds.
 
@@ -61,6 +63,11 @@ const int messageTimeout = 5000; //!< status bar message timeout in milliseconds
 // check if a translation for langCode is stored as resource
 static bool isLanguageCodeSupported(const QString &langCode)
 {
+  // English is the default language, always supported
+  if (langCode == QString::fromLatin1("en"))
+  {
+    return true;
+  }
   QDir resourceDir(QString::fromLatin1(":/i18n"));
   QFileInfoList fileList = resourceDir.entryInfoList();
   foreach (QFileInfo fileInfo, fileList)
@@ -112,28 +119,7 @@ QString DoxygenWizard::msgSelectButton()                              { return T
 QString DoxygenWizard::msgPreviousButton()                            { return TR_MSG("Previous");                                       }
 QString DoxygenWizard::msgNextButton()                                { return TR_MSG("Next");                                           }
 QString DoxygenWizard::msgTopicsHeader()                              { return TR_MSG("Topics");                                         }
-
-#define TR_WIZARD_MESSAGES                             \
-    TR_MSG_ENTRY("Build")          \
-    TR_MSG_ENTRY("Messages")       \
-    TR_MSG_ENTRY("Input")          \
-    TR_MSG_ENTRY("Source Browser") \
-    TR_MSG_ENTRY("Index")          \
-    TR_MSG_ENTRY("Preprocessor")   \
-    TR_MSG_ENTRY("External")
-
 #undef  TR_MSG_ENTRY
-#define TR_MSG_ENTRY(name) { QLatin1String(name), []() { return QCoreApplication::translate("Messages", name); } },
-
-static QMap<QString, std::function<QString()>> g_messageMap = {
-    TR_WIZARD_MESSAGES
-};
-
-QString DoxygenWizard::translateExpertTopic(const QString &name)
-{
-  if (g_messageMap.contains(name)) return g_messageMap[name]();
-  return name;
-}
 
 //----------------------------------------------------------------------------------------------
 
@@ -147,33 +133,54 @@ MainWindow::MainWindow()
   : m_settings(QString::fromLatin1("Doxygen.org"), QString::fromLatin1("Doxywizard"))
 {
   QMenu *file = menuBar()->addMenu(tr("File"));
-  file->addAction(tr("Open..."),
-                  this, SLOT(openConfig()), QKeySequence{ Qt::CTRL | Qt::Key_O });
+  {
+    QAction *a = file->addAction(tr("Open..."));
+    a->setShortcut(QKeySequence{ Qt::CTRL | Qt::Key_O });
+    connect(a, SIGNAL(triggered()), this, SLOT(openConfig()));
+  }
   m_recentMenu = file->addMenu(tr("Open recent"));
-  file->addAction(tr("Save"),
-                  this, SLOT(saveConfig()), QKeySequence{ Qt::CTRL | Qt::Key_S });
-  file->addAction(tr("Save as..."),
-                  this, SLOT(saveConfigAs()), QKeySequence{ Qt::SHIFT | Qt::CTRL | Qt::Key_S });
-  file->addAction(tr("Quit"),
-                  this, SLOT(quit()), QKeySequence{ Qt::CTRL | Qt::Key_Q });
+  {
+    QAction *a = file->addAction(tr("Save"));
+    a->setShortcut(QKeySequence{ Qt::CTRL | Qt::Key_S });
+    connect(a, SIGNAL(triggered()), this, SLOT(saveConfig()));
+  }
+  {
+    QAction *a = file->addAction(tr("Save as..."));
+    a->setShortcut(QKeySequence{ Qt::SHIFT | Qt::CTRL | Qt::Key_S });
+    connect(a, SIGNAL(triggered()), this, SLOT(saveConfigAs()));
+  }
+  {
+    QAction *a = file->addAction(tr("Quit"));
+    a->setShortcut(QKeySequence{ Qt::CTRL | Qt::Key_Q });
+    connect(a, SIGNAL(triggered()), this, SLOT(quit()));
+  }
 
   QMenu *settings = menuBar()->addMenu(tr("Settings"));
   m_resetDefault = settings->addAction(tr("Reset to factory defaults"),
                   this,SLOT(resetToDefaults()));
   settings->addAction(tr("Use current settings at startup"),
                   this,SLOT(makeDefaults()));
+  m_hideDocumentation = settings->addAction(tr("Hide documentation"),
+                  this,SLOT(setDocumentationVisibility()));
+  m_hideDocumentation->setCheckable(true);
+  bool hidden = m_settings.value(QString::fromLatin1("documentation/hide")).toBool();
+  m_hideDocumentation->setChecked(hidden);
   settings->addAction(tr("Switch language..."),
                   this,SLOT(switchLanguage()));
   m_clearRecent = settings->addAction(tr("Clear recent list"),
                   this,SLOT(clearRecent()));
   settings->addSeparator();
-  m_runMenu = settings->addAction(tr("Run doxygen"),
-                                  this, SLOT(runDoxygenMenu()), QKeySequence{ Qt::CTRL | Qt::Key_R });
+  m_runMenu = settings->addAction(tr("Run doxygen"));
+  m_runMenu->setShortcut(QKeySequence{ Qt::CTRL | Qt::Key_R });
+  connect(m_runMenu, SIGNAL(triggered()), this, SLOT(runDoxygenMenu()));
   m_runMenu->setEnabled(false);
 
   QMenu *help = menuBar()->addMenu(tr("Help"));
-  help->addAction(tr("Online manual"),
-                  this, SLOT(manual()), Qt::Key_F1);
+  {
+    QAction *a = help->addAction(tr("Online manual"));
+    a->setShortcut(Qt::Key_F1);
+    connect(a, SIGNAL(triggered()), this, SLOT(manual()));
+  }
   help->addAction(tr("About"),
                   this, SLOT(about()) );
 
@@ -297,6 +304,7 @@ MainWindow::MainWindow()
   m_modified = false;
   updateTitle();
   m_wizard->refresh();
+  m_expert->setDocumentationVisibility(hidden);
 }
 
 void MainWindow::closeEvent(QCloseEvent *event)
@@ -348,6 +356,12 @@ void MainWindow::updateWorkingDir()
   setWorkingDir(m_workingDir->text());
 }
 
+void MainWindow::setLanguage(const QString &langCode)
+{
+  m_settings.setValue(QString::fromLatin1("language/code"), langCode);
+  m_settings.sync();
+}
+
 void MainWindow::manual()
 {
   QDesktopServices::openUrl(QUrl(QString::fromLatin1("https://www.doxygen.org/manual/index.html")));
@@ -362,11 +376,11 @@ void MainWindow::about()
        QString::fromLatin1("</center><center>");
   if (QString::fromLatin1(qVersion())==QString::fromLatin1(QT_VERSION_STR))
   {
-    t << tr("Created with Qt version %1").arg(QString::fromLatin1(QT_VERSION_STR));
+    t << tr("(Created with Qt version %1)").arg(QString::fromLatin1(QT_VERSION_STR));
   }
   else
   {
-    t << tr("Created with Qt version %1, running with version %2").arg(QString::fromLatin1(QT_VERSION_STR)).arg(QString::fromLatin1(qVersion()));
+    t << tr("(Created with Qt version %1, running with version %2)").arg(QString::fromLatin1(QT_VERSION_STR)).arg(QString::fromLatin1(qVersion()));
   }
   t << QString::fromLatin1("</center><p><br><center>") + tr("Written by");
   t << QString::fromLatin1("<br> Dimitri van Heesch<br>&copy; 2000-") << QDate::currentDate().year();
@@ -470,6 +484,15 @@ void MainWindow::makeDefaults()
   }
 }
 
+void MainWindow::setDocumentationVisibility()
+{
+  // New state
+  bool hidden = m_hideDocumentation->isChecked();
+  m_settings.setValue(QString::fromLatin1("documentation/hide"), hidden);
+  m_settings.sync();
+  m_expert->setDocumentationVisibility(hidden);
+}
+
 void MainWindow::switchLanguage()
 {
   LanguageDialog languageDialog(DoxygenWizard::langCode,this);
@@ -479,9 +502,14 @@ void MainWindow::switchLanguage()
     qDebug() << "selected language" << langCode;
     if (langCode!=DoxygenWizard::langCode)
     {
-      QSettings settings(QString::fromLatin1("Doxygen.org"), QString::fromLatin1("Doxywizard"));
-      m_settings.setValue(QString::fromLatin1("language/code"), languageDialog.selectedLocale());
-      quit();
+      // Restart the application
+      if (discardUnsavedChanges())
+      {
+        setLanguage(langCode);
+        saveSettings();
+        qApp->quit();
+        QProcess::startDetached(qApp->arguments()[0], newArgs);
+      }
     }
   }
 }
@@ -640,7 +668,7 @@ void MainWindow::runDoxygen()
   if (!m_running)
   {
     QString doxygenPath;
-#if defined(Q_OS_MACX)
+#if defined(Q_OS_MACOS)
     doxygenPath = qApp->applicationDirPath()+QString::fromLatin1("/../Resources/");
     qDebug() << "Doxygen path: " << doxygenPath;
     if ( !QFile(doxygenPath + QString::fromLatin1("doxygen")).exists() )
@@ -832,6 +860,11 @@ void MainWindow::showSettings()
   m_saveLog->setEnabled(true);
 }
 
+void MainWindow::dump()
+{
+  m_expert->dump();
+}
+
 void MainWindow::configChanged()
 {
   m_modified = true;
@@ -891,11 +924,13 @@ void MainWindow::outputLogStart()
   m_outputLogTextCount = 0;
   m_outputLog->clear();
 }
+
 void MainWindow::outputLogText(QString text)
 {
   m_outputLogTextCount++;
   m_outputLog->append(APPQT(text));
 }
+
 void MainWindow::outputLogFinish()
 {
   if (m_outputLogTextCount > 0)
@@ -905,6 +940,55 @@ void MainWindow::outputLogFinish()
 
   m_outputLog->ensureCursorVisible();
   m_saveLog->setEnabled(true);
+}
+
+static QString languagesList()
+{
+  QString languages = QString::fromLatin1("en");
+
+  // add additional languages based on embedded info
+  QDir resourceDir(QString::fromLatin1(":/i18n"));
+  QFileInfoList fileList = resourceDir.entryInfoList();
+  QString prevLangCode;
+  foreach (QFileInfo fileInfo, fileList)
+  {
+    QString filename     = fileInfo.fileName();
+    const int underscore = filename.indexOf(QChar::fromLatin1('_'));
+    const int dot        = filename.lastIndexOf(QChar::fromLatin1('.'));
+    if (filename.startsWith(QString::fromLatin1("config")) && underscore!=-1 && dot>underscore)
+    {
+      QString langCode = filename.mid(underscore+1, dot-underscore-1);
+      QFile trFile(QString::fromLatin1(":/i18n/config_%1.xml").arg(langCode));
+      if (trFile.open(QIODevice::ReadOnly))
+      {
+        if (!prevLangCode.isEmpty())
+        {
+          languages +=  QString::fromLatin1(", ") + prevLangCode;
+        }
+        prevLangCode = langCode;
+      }
+    }
+  }
+  if (!prevLangCode.isEmpty())
+  {
+    languages +=  QString::fromLatin1(" and ") + prevLangCode;
+  }
+  return languages;
+}
+
+#define TXT_ARGS  QString::fromLatin1(argc > 2?"Too many arguments specified\n\n":"")
+static void usage(const char *exeName, const QString txt)
+{
+  QMessageBox msgBox;
+  QString fullText = txt;
+  fullText +=  QString::fromLatin1("Usage:\n");
+  fullText +=  QString::fromLatin1("  %1 [--debug] [--dump] [--doxyfile] [--language [lang]] [config file]\n").arg(QString::fromLatin1(exeName));
+  fullText +=  QString::fromLatin1("    or\n");
+  fullText +=  QString::fromLatin1("  %1 --help\n").arg(QString::fromLatin1(exeName));
+  fullText +=  QString::fromLatin1("    or\n");
+  fullText +=  QString::fromLatin1("  %1 --version\n").arg(QString::fromLatin1(exeName));
+  msgBox.setText(fullText);
+  msgBox.exec();
 }
 
 //-----------------------------------------------------------------------
@@ -921,21 +1005,30 @@ int main(int argc,char **argv)
 #endif
 
   QApplication a(argc,argv);
-  int locArgc = argc;
 
-  if (locArgc == 2)
+
+  int optInd=1;
+  bool langSet = false;
+  bool dumpFlag = false;
+  bool doxyfileFlag = false;
+  QString langSel;
+  while (optInd<argc && argv[optInd][0]=='-' && argv[optInd][1]=='-')
   {
-    if (!qstrcmp(argv[1],"--help"))
+    if (!qstrcmp(argv[optInd],"--help"))
     {
-      QMessageBox msgBox;
-      msgBox.setText(QString::fromLatin1("Usage: %1 [config file]").arg(QString::fromLatin1(argv[0])));
-      msgBox.exec();
+      usage(argv[0],TXT_ARGS);
+      if (argc > 2) exit(1);
       exit(0);
     }
-    else if (!qstrcmp(argv[1],"--version"))
+    else if (!qstrcmp(argv[optInd],"--version"))
     {
       QMessageBox msgBox;
-      if (!qstrcmp(qVersion(),QT_VERSION_STR))
+      if (argc > 2)
+      {
+        usage(argv[0],TXT_ARGS);
+        exit(1);
+      }
+      else if (!qstrcmp(qVersion(),QT_VERSION_STR))
       {
         msgBox.setText(QString::fromLatin1("Doxywizard version: %1, Qt version: %2").arg(QString::fromLatin1(getFullVersion().c_str())).arg(QString::fromLatin1(QT_VERSION_STR)));
       }
@@ -946,25 +1039,59 @@ int main(int argc,char **argv)
       msgBox.exec();
       exit(0);
     }
-  }
-  if (!qstrcmp(argv[1],"--debug") && ((locArgc == 2) || (locArgc == 3)))
-  {
-    DoxygenWizard::debugFlag = true;
-    locArgc--;
+    else if (!qstrcmp(argv[optInd],"--dump"))
+    {
+      dumpFlag = true;
+    }
+    else if (!qstrcmp(argv[optInd],"--doxyfile"))
+    {
+      doxyfileFlag = true;
+    }
+    else if (!qstrcmp(argv[optInd],"--debug"))
+    {
+      DoxygenWizard::debugFlag = true;
+      newArgs.push_back(QString::fromLatin1(argv[optInd]));
+    }
+    else if (!qstrcmp(argv[optInd],"--language"))
+    {
+      langSet = true;
+      if (optInd+1>=argc || (argv[optInd+1][0]=='-' && argv[optInd+1][1]=='-'))
+      {
+        langSel = QString::fromLatin1("en");
+      }
+      else
+      {
+        langSel = QString::fromLatin1(argv[optInd+1]);
+        optInd++;
+      }
+      if (!isLanguageCodeSupported(langSel))
+      {
+        usage(argv[0],QString::fromLatin1("Unknown language selected\n  available languages: ") + languagesList() +
+                      QString::fromLatin1("\n\n"));
+        exit(1);
+      }
+    }
+    optInd++;
   }
 
-  if (locArgc > 2)
+  if (optInd+2<=argc)
   {
-    QMessageBox msgBox;
-    msgBox.setText(QString::fromLatin1("Too many arguments specified\n\nUsage: %1 [config file]").arg(QString::fromLatin1(argv[0])));
-    msgBox.exec();
+    usage(argv[0],TXT_ARGS);
     exit(1);
   }
-  else
+
   {
     qDebug() << "Starting doxywizard...";
+    QString initialPath = QDir::currentPath();
 
-    DoxygenWizard::langCode = getStartupLanguageCode();
+    if (langSet)
+    {
+      DoxygenWizard::langCode = langSel;
+    }
+    else
+    {
+      DoxygenWizard::langCode = getStartupLanguageCode();
+    }
     QTranslator qtTranslator;
     if (!DoxygenWizard::langCode.isEmpty() &&
         qtTranslator.load(QString::fromLatin1(":/i18n/qtbase_%1.qm").arg(DoxygenWizard::langCode))
@@ -983,10 +1110,29 @@ int main(int argc,char **argv)
     }
 
     MainWindow &main = MainWindow::instance();
-    if (locArgc==2 && argv[argc-1][0]!='-') // name of config file as an argument
+    if (langSet)
     {
+      main.setLanguage(langSel);
+    }
+    if (optInd+1==argc && argv[argc-1][0]!='-') // name of config file as an argument
+    {
+      newArgs.push_back(QString::fromLatin1(argv[argc-1]));
       main.loadConfigFromFile(QString::fromLocal8Bit(argv[argc-1]));
     }
+
+    if (dumpFlag)
+    {
+      main.setWorkingDir(initialPath);
+      main.dump();
+    }
+    if (doxyfileFlag)
+    {
+      QString fn = QString::fromLatin1("Doxyfile_%1").arg(DoxygenWizard::langCode);
+      main.setWorkingDir(initialPath);
+      main.saveConfig(fn);
+    }
+    if (dumpFlag ||doxyfileFlag) exit(0);
+
     main.show();
     return a.exec();
   }

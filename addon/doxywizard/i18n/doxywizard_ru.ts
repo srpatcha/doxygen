@@ -14,80 +14,8 @@
         <translation>Ошибка</translation>
     </message>
     <message>
-        <source>Possible values are:</source>
-        <translation>Возможные значения:</translation>
-    </message>
-    <message>
-        <source>and</source>
-        <translation>и</translation>
-    </message>
-    <message>
-        <source>The default value is: &lt;code&gt;%1&lt;/code&gt;.</source>
-        <translation>Значение по умолчанию: &lt;code&gt;%1&lt;/code&gt;.</translation>
-    </message>
-    <message>
-        <source>Minimum value: %1, maximum value: %2, default value: %3.</source>
-        <translation>Минимальное значение: %1, максимальное значение: %2, значение по умолчанию: %3.</translation>
-    </message>
-    <message>
-        <source>The default value is: system dependent.</source>
-        <translation>Значение по умолчанию зависит от системы.</translation>
-    </message>
-    <message>
-        <source>The default directory is: &lt;code&gt;%1&lt;/code&gt;.</source>
-        <translation>Каталог по умолчанию: &lt;code&gt;%1&lt;/code&gt;.</translation>
-    </message>
-    <message>
-        <source>The default file is: &lt;code&gt;%1&lt;/code&gt;.</source>
-        <translation>Файл по умолчанию: &lt;code&gt;%1&lt;/code&gt;.</translation>
-    </message>
-    <message>
-        <source>The default file (with absolute path) is: &lt;code&gt;%1&lt;/code&gt;.</source>
-        <translation>Файл по умолчанию (с абсолютным путём): &lt;code&gt;%1&lt;/code&gt;.</translation>
-    </message>
-    <message>
-        <source>The file has to be specified with full path.</source>
-        <translation>Файл должен быть указан с полным путём.</translation>
-    </message>
-    <message>
-        <source>The default image is: &lt;code&gt;%1&lt;/code&gt;.</source>
-        <translation>Изображение по умолчанию: &lt;code&gt;%1&lt;/code&gt;.</translation>
-    </message>
-    <message>
-        <source>The default image (with absolute path) is: &lt;code&gt;%1&lt;/code&gt;.</source>
-        <translation>Изображение по умолчанию (с абсолютным путём): &lt;code&gt;%1&lt;/code&gt;.</translation>
-    </message>
-    <message>
-        <source>The image has to be specified with full path.</source>
-        <translation>Изображение должно быть указано с полным путём.</translation>
-    </message>
-    <message>
-        <source>This tag requires that the tag %1 is set to &lt;code&gt;YES&lt;/code&gt;.</source>
-        <translation>Этот тег требует, чтобы тег %1 был установлен в &lt;code&gt;YES&lt;/code&gt;.</translation>
-    </message>
-    <message>
-        <source>Note:</source>
-        <translation>Примечание:</translation>
-    </message>
-    <message>
-        <source>See also:</source>
-        <translation>См. также:</translation>
-    </message>
-    <message>
-        <source>Doxygen usage</source>
-        <translation>Использование Doxygen</translation>
-    </message>
-    <message>
-        <source>External Indexing and Searching</source>
-        <translation>Внешнее индексирование и поиск</translation>
-    </message>
-    <message>
-        <source>Linking to external documentation</source>
-        <translation>Ссылка на внешнюю документацию</translation>
-    </message>
-    <message>
-        <source>Including formulas</source>
-        <translation>Включение формул</translation>
+        <source>Search settings...</source>
+        <translation>Поиск настроек...</translation>
     </message>
 </context>
 <context>
@@ -372,6 +300,10 @@ Reason given: %2</source>
         <translation>Графический интерфейс Doxygen</translation>
     </message>
     <message>
+        <source>Hide documentation</source>
+        <translation>Скрыть документацию</translation>
+    </message>
+    <message>
         <source>Switch language...</source>
         <translation>Сменить язык...</translation>
     </message>
@@ -621,6 +553,10 @@ Reason given: %2</source>
 <context>
     <name>Wizard</name>
     <message>
+        <source>Project</source>
+        <translation>Проект</translation>
+    </message>
+    <message>
         <source>Mode</source>
         <translation>Режим</translation>
     </message>
@@ -668,38 +604,6 @@ Reason given: %2</source>
         <translation>Далее</translation>
     </message>
     <message>
-        <source>Project</source>
-        <translation>Проект</translation>
-    </message>
-    <message>
-        <source>Build</source>
-        <translation>Сборка</translation>
-    </message>
-    <message>
-        <source>Messages</source>
-        <translation>Сообщения</translation>
-    </message>
-    <message>
-        <source>Input</source>
-        <translation>Ввод</translation>
-    </message>
-    <message>
-        <source>Source Browser</source>
-        <translation>Браузер исходного кода</translation>
-    </message>
-    <message>
-        <source>Index</source>
-        <translation>Индекс</translation>
-    </message>
-    <message>
-        <source>Preprocessor</source>
-        <translation>Препроцессор</translation>
-    </message>
-    <message>
-        <source>External</source>
-        <translation>Внешние ссылки</translation>
-    </message>
-    <message>
         <source>Topics</source>
         <translation>Темы</translation>
     </message>
@@ -719,8 +623,8 @@ Reason given: %2</source>
         <translation>Доступные языки</translation>
     </message>
     <message>
-        <source>Select and Quit</source>
-        <translation>Выбрать и выйти</translation>
+        <source>Select and Restart</source>
+        <translation>Выбрать и перезапустить</translation>
     </message>
 </context>
 

@@ -44,6 +44,10 @@
 
 #define USE_STATE2STRING 0
 
+#if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
+    typedef int qsizetype;
+#endif
+
 /* -----------------------------------------------------------------
  *
  * static variables
@@ -401,42 +405,42 @@ static const char *stateToString(int state);
 
    /*-------------- Comments ---------------*/
 
-<Start>"#".*\n	                         { /* Skip comment */ }
+<Start>"#".*\n                           { /* Skip comment */ }
 
    /*-------------- TAG start ---------------*/
 
-<Start>[a-z_A-Z][a-z_A-Z0-9]*[ \t]*"="	 {
+<Start>[a-z_A-Z][a-z_A-Z0-9]*[ \t]*"="   {
                                            g_cmd = g_codec->decode(yytext);
                                            g_cmd=g_cmd.left(g_cmd.length()-1).trimmed();
-					   g_curOption = g_options->value(g_cmd);
-					   if (g_curOption==nullptr) // oops not known
-					   {
-					     config_warn("ignoring unsupported tag '%s' at line %d, file %s\n",
-						 qPrintable(g_cmd),yylineno,qPrintable(g_yyFileName));
-					     BEGIN(SkipInvalid);
-					   }
-					   else // known tag
-					   {
-					     g_arg = &g_curOption->value();
+                                           g_curOption = g_options->value(g_cmd);
+                                           if (g_curOption==nullptr) // oops not known
+                                           {
+                                             config_warn("ignoring unsupported tag '%s' at line %d, file %s\n",
+                                             qPrintable(g_cmd),yylineno,qPrintable(g_yyFileName));
+                                             BEGIN(SkipInvalid);
+                                           }
+                                           else // known tag
+                                           {
+                                             g_arg = &g_curOption->value();
                                              g_str = QByteArray();
                                              g_isEnum = false;
-					     switch(g_curOption->kind())
-					     {
-					       case Input::StrList:
-						 *g_arg = QStringList();
-					         BEGIN(GetStrList);
-					         break;
-					       case Input::String:
+                                             switch(g_curOption->kind())
+                                             {
+                                               case Input::StrList:
+                                                 *g_arg = QStringList();
+                                                 BEGIN(GetStrList);
+                                                 break;
+                                               case Input::String:
                                                  g_isEnum = dynamic_cast<InputString *>(g_curOption)->stringMode() == InputString::StringFixed;
                                                  BEGIN(GetString);
-					         break;
-					       case Input::Int:
-					         BEGIN(GetString);
-					         break;
-					       case Input::Bool:
-					         BEGIN(GetString);
-						 break;
-					       case Input::Obsolete:
+                                                 break;
+                                               case Input::Int:
+                                                 BEGIN(GetString);
+                                                 break;
+                                               case Input::Bool:
+                                                 BEGIN(GetString);
+                                                 break;
+                                               case Input::Obsolete:
                                                  {
                                                    config_warn("Tag '%s' at line %d of file %s has become obsolete.\n"
                                                        "To avoid this warning please update your configuration "
@@ -460,90 +464,90 @@ static const char *stateToString(int state);
                                                      BEGIN(SkipInvalid);
                                                    }
                                                  }
-						 break;
-					     }
-					   }
-					}
-<Start>[a-z_A-Z][a-z_A-Z0-9]*[ \t]*"+="	{
+                                                 break;
+                                             }
+                                           }
+                                        }
+<Start>[a-z_A-Z][a-z_A-Z0-9]*[ \t]*"+=" {
                                           g_cmd=g_codec->decode(yytext);
                                           g_cmd=g_cmd.left(g_cmd.length()-2).trimmed();
-					  g_curOption = g_options->value(g_cmd);
-					  if (g_curOption==nullptr) // oops not known
-					  {
-					    config_warn("ignoring unsupported tag '%s' at line %d, file %s\n",
-						yytext,yylineno,qPrintable(g_yyFileName));
-					    BEGIN(SkipInvalid);
-					  }
-					  else // known tag
-					  {
-					    switch(g_curOption->kind())
-					    {
-					      case Input::StrList:
-						g_arg = &g_curOption->value();
-						g_str=QByteArray();
-					        BEGIN(GetStrList);
-					        break;
-					      case Input::String:
-					      case Input::Int:
-					      case Input::Bool:
-					        config_warn("operator += not supported for '%s'. Ignoring line %d, file %s\n",
-						    qPrintable(g_cmd),yylineno,qPrintable(g_yyFileName));
-					        BEGIN(SkipInvalid);
-						break;
-					      case Input::Obsolete:
+                                          g_curOption = g_options->value(g_cmd);
+                                          if (g_curOption==nullptr) // oops not known
+                                          {
+                                            config_warn("ignoring unsupported tag '%s' at line %d, file %s\n",
+                                            yytext,yylineno,qPrintable(g_yyFileName));
+                                            BEGIN(SkipInvalid);
+                                          }
+                                          else // known tag
+                                          {
+                                            switch(g_curOption->kind())
+                                            {
+                                              case Input::StrList:
+                                                g_arg = &g_curOption->value();
+                                                g_str=QByteArray();
+                                                BEGIN(GetStrList);
+                                                break;
+                                              case Input::String:
+                                              case Input::Int:
+                                              case Input::Bool:
+                                                config_warn("operator += not supported for '%s'. Ignoring line %d, file %s\n",
+                                                qPrintable(g_cmd),yylineno,qPrintable(g_yyFileName));
+                                                BEGIN(SkipInvalid);
+                                                break;
+                                              case Input::Obsolete:
                                                 {
-					          config_warn("Tag '%s' at line %d of file %s has become obsolete.\n"
-						              "To avoid this warning please update your configuration "
-						  	      "file using \"doxygen -u\"\n",
-							      qPrintable(g_cmd),yylineno,qPrintable(g_yyFileName));
+                                                  config_warn("Tag '%s' at line %d of file %s has become obsolete.\n"
+                                                               "To avoid this warning please update your configuration "
+                                                               "file using \"doxygen -u\"\n",
+                                                   qPrintable(g_cmd),yylineno,qPrintable(g_yyFileName));
                                                    InputObsolete *obsoleteOpt = dynamic_cast<InputObsolete*>(g_curOption);
                                                    if (obsoleteOpt && obsoleteOpt->orgKind()==Input::StrList)
                                                    {
-						     g_arg = &g_curOption->value();
-						     g_str=QByteArray();
+                                                     g_arg = &g_curOption->value();
+                                                     g_str=QByteArray();
                                                      BEGIN(GetStrList);
                                                    }
-					           else
+                                                   else
                                                    {
                                                      BEGIN(SkipInvalid);
                                                    }
                                                 }
-					        break;
-					     }
-					   }
-					}
+                                                break;
+                                             }
+                                           }
+                                        }
 
    /*-------------- INCLUDE* ---------------*/
 
-<Start>"@INCLUDE_PATH"[ \t]*"=" 	{ BEGIN(GetStrList); g_arg=&g_includePathList; *g_arg = QStringList(); g_str=QByteArray(); }
+<Start>"@INCLUDE_PATH"[ \t]*"="         { BEGIN(GetStrList); g_arg=&g_includePathList; *g_arg = QStringList(); g_str=QByteArray(); }
   /* include a config file */
-<Start>"@INCLUDE"[ \t]*"="     		{ BEGIN(Include);}
+<Start>"@INCLUDE"[ \t]*"="              { BEGIN(Include);}
 <Include>([^ \"\t\r\n]+)|("\""[^\n\"]+"\"") {
-  					  readIncludeFile(g_codec->decode(yytext));
-  					  BEGIN(Start);
-					}
-<<EOF>>					{
+                                          readIncludeFile(g_codec->decode(yytext));
+                                          BEGIN(Start);
+                                        }
+<<EOF>>                                 {
                                           //printf("End of include file\n");
-					  //printf("Include stack depth=%d\n",g_includeStack.count());
+                                          //printf("Include stack depth=%d\n",g_includeStack.count());
                                           if (g_includeStack.isEmpty())
-					  {
-					    //printf("Terminating scanner!\n");
-					    yyterminate();
-					  }
-					  else
-					  {
-					    ConfigFileState *fs = g_includeStack.pop();
-					    fclose(fs->file);
-					    YY_BUFFER_STATE oldBuf = YY_CURRENT_BUFFER;
-					    yy_switch_to_buffer( fs->oldState );
-					    yy_delete_buffer( oldBuf );
-					    g_yyFileName=fs->fileName;
-					    delete fs;
+                                          {
+                                            //printf("Terminating scanner!\n");
+                                            yyterminate();
+                                          }
+                                          else
+                                          {
+                                            ConfigFileState *fs = g_includeStack.pop();
+                                            fclose(fs->file);
+                                            YY_BUFFER_STATE oldBuf = YY_CURRENT_BUFFER;
+                                            yy_switch_to_buffer( fs->oldState );
+                                            yy_delete_buffer( oldBuf );
+                                            g_yyFileName=fs->fileName;
+                                            delete fs;
                                             g_includeDepth--;
-					  }
-  					}
+                                          }
+                                        }
 
-<Start>[a-z_A-Z0-9]+			{ config_warn("ignoring unknown tag '%s' at line %d, file %s\n",yytext,yylineno,qPrintable(g_yyFileName)); }
+<Start>[a-z_A-Z0-9]+                    { config_warn("ignoring unknown tag '%s' at line %d, file %s\n",yytext,yylineno,qPrintable(g_yyFileName)); }
 
    /*-------------- GetString ---------------*/
 
@@ -594,10 +598,10 @@ static const char *stateToString(int state);
 
    /*-------------- fall through -------------*/
 
-<*>\\[ \r\t]*\n				{ }
-<*>[ \r\t]				{ }
+<*>\\[ \r\t]*\n                         { }
+<*>[ \r\t]                              { }
 <*>\n
-<*>.					{ config_warn("ignoring unknown character '%c' at line %d, file %s\n",yytext[0],yylineno,qPrintable(g_yyFileName)); }
+<*>.                                    { config_warn("ignoring unknown character '%c' at line %d, file %s\n",yytext[0],yylineno,qPrintable(g_yyFileName)); }
 
 %%
 
@@ -633,7 +637,7 @@ static void substEnvVarsInStrList(QStringList &sl)
 
   foreach (QString result, sl)
   {
-    // an argument with quotes will have an extra space at the end, so wasQuoted will be TRUE.
+    // an argument with quotes will have an extra space at the end, so wasQuoted will be true.
     bool wasQuoted = (result.indexOf(QChar::fromLatin1(' '))!=-1) ||
                      (result.indexOf(QChar::fromLatin1('\t'))!=-1);
     // here we strip the quote again
@@ -642,10 +646,10 @@ static void substEnvVarsInStrList(QStringList &sl)
     //printf("Result %s was quoted=%d\n",qPrintable(result),wasQuoted);
 
     if (!wasQuoted) /* as a result of the expansion, a single string
-		       may have expanded into a list, which we'll
-		       add to sl. If the original string already
-		       contained multiple elements no further
-		       splitting is done to allow quoted items with spaces! */
+                       may have expanded into a list, which we'll
+                       add to sl. If the original string already
+                       contained multiple elements no further
+                       splitting is done to allow quoted items with spaces! */
     {
       int l=result.length();
       int i,p=0;
@@ -653,40 +657,40 @@ static void substEnvVarsInStrList(QStringList &sl)
       // search for a "word"
       for (i=0;i<l;i++)
       {
-	QChar c;
-	// skip until start of new word
-	while (i<l && ((c=result.at(i))==QChar::fromLatin1(' ') || c==QChar::fromLatin1('\t'))) i++;
-	p=i; // p marks the start index of the word
-	// skip until end of a word
-	while (i<l && ((c=result.at(i))!=QChar::fromLatin1(' ') &&
-	              c!=QChar::fromLatin1('\t') &&
-		      c!=QChar::fromLatin1('"'))) i++;
-	if (i<l) // not at the end of the string
-	{
-	  if (c==QChar::fromLatin1('"')) // word within quotes
-	  {
-	    p=i+1;
-	    for (i++;i<l;i++)
-	    {
-	      c=result.at(i);
-	      if (c==QChar::fromLatin1('"')) // end quote
-	      {
+        QChar c;
+        // skip until start of new word
+        while (i<l && ((c=result.at(i))==QChar::fromLatin1(' ') || c==QChar::fromLatin1('\t'))) i++;
+        p=i; // p marks the start index of the word
+        // skip until end of a word
+        while (i<l && ((c=result.at(i))!=QChar::fromLatin1(' ') &&
+                      c!=QChar::fromLatin1('\t') &&
+                      c!=QChar::fromLatin1('"'))) i++;
+        if (i<l) // not at the end of the string
+        {
+          if (c==QChar::fromLatin1('"')) // word within quotes
+          {
+            p=i+1;
+            for (i++;i<l;i++)
+            {
+              c=result.at(i);
+              if (c==QChar::fromLatin1('"')) // end quote
+              {
                 out += result.mid(p,i-p);
-		p=i+1;
-		break;
-	      }
-	      else if (c==QChar::fromLatin1('\\')) // skip escaped stuff
-	      {
-		i++;
-	      }
-	    }
-	  }
-	  else if (c==QChar::fromLatin1(' ') || c==QChar::fromLatin1('\t')) // separator
-	  {
+                p=i+1;
+                break;
+              }
+              else if (c==QChar::fromLatin1('\\')) // skip escaped stuff
+              {
+                i++;
+              }
+            }
+          }
+          else if (c==QChar::fromLatin1(' ') || c==QChar::fromLatin1('\t')) // separator
+          {
             out += result.mid(p,i-p);
-	    p=i+1;
-	  }
-	}
+            p=i+1;
+          }
+        }
       }
       if (p!=l) // add the leftover as a string
       {
@@ -703,8 +707,88 @@ static void substEnvVarsInStrList(QStringList &sl)
 
 //--------------------------------------------------------------------------
 
+inline bool qisspace(char c)
+{
+  return c==' ' || c=='\t' || c=='\n' || c=='\r';
+}
+
+// Returns a quoted copy of this string, unless it is already quoted.
+// Note that trailing and leading whitespace is removed.
+QString quoted(QString &inpValue)
+{
+  std::string rep =  inpValue.toStdString();
+  qsizetype start=0, sl=rep.size(), end=sl-1;
+  while (start<sl  && qisspace(rep[start])) start++; // skip over leading whitespace
+  if (start==sl) return QString(); // only whitespace
+  while (end>start && qisspace(rep[end]))   end--;   // skip over trailing whitespace
+  bool needsQuotes=false;
+  qsizetype i=start;
+  if (i<end && rep[i]!='"') // stripped string has at least non-whitespace unquoted character
+  {
+    while (i<end && !needsQuotes) // check if the to be quoted part has at least one whitespace character
+    {
+      needsQuotes = rep[i] =='-';
+      needsQuotes |= qisspace(rep[i++]);
+    }
+  }
+  std::string  result = rep.substr(start,1+end-start);
+  if (needsQuotes)
+  {
+    result = "\"" + result + "\"";
+  }
+  return QString::fromUtf8(result.c_str());
+}
+
+static void updateAttribute(InputString *attr, const char *key, QString &inpValue)
+{
+  QString attrValue = attr->value().toString();
+  std::string s = attrValue.toStdString();
+  // look for key\s*=
+  QRegularExpression re(QString::fromLatin1(key)+QString::fromLatin1(R"(\s*=)"));
+  QRegularExpressionMatch match = re.match(attrValue);
+  if (match.hasMatch()) // replace existing attribute
+  {
+    qsizetype len      = s.length();
+    qsizetype startPos = match.capturedStart()+match.capturedLength(); // position after =
+    qsizetype pos      = startPos;
+    while (pos<len && qisspace(s[pos])) pos++;
+    if (pos<len && s[pos]=='"') // quoted value, search for end quote, ignoring escaped quotes
+    {
+      char pc=s[pos];
+      pos++; // skip over start quote
+      while (pos<len && (s[pos]!='"' || (s[pos]=='"' && pc=='\\'))) pc=s[pos++];
+      if (pos<len) pos++; // skip over end quote
+    }
+    else // unquoted value, search for attribute separator (space,comma, or semicolon)
+    {
+      while (pos<len && s[pos]!=',' && s[pos]!=';' && !qisspace(s[pos])) pos++;
+    }
+    QString value;
+    if (inpValue.isEmpty())
+    {
+      value = attrValue.mid(startPos,pos-startPos);
+    }
+    else
+    {
+      value = inpValue;
+    }
+    // pos is now the position after the value, so replace the part between [start..pos) with the new value
+    attrValue=attrValue.left(startPos)+quoted(value)+attrValue.mid(pos);
+  }
+  else // append new attribute
+  {
+    if (!inpValue.isEmpty())
+    {
+      if (!attrValue.isEmpty()) attrValue+=QString::fromLatin1(",");
+      attrValue+=QString::fromLatin1(key)+QString::fromLatin1("=")+quoted(inpValue);
+    }
+  }
+  attr->setValue(attrValue);
+}
+
 static void upgradeConfig(const QHash<QString,Input*> &options)
 {
+  // check for presence of obsolete CLASS_DIAGRAM option and correct CLASS_GRAPH if needed
   auto it1 = options.find(QString::fromLatin1("CLASS_DIAGRAMS"));
   auto it2 = options.find(QString::fromLatin1("HAVE_DOT"));
   auto it3 = options.find(QString::fromLatin1("CLASS_GRAPH"));
@@ -728,6 +812,118 @@ static void upgradeConfig(const QHash<QString,Input*> &options)
         {
           config_warn("Changing CLASS_GRAPH option to TEXT because obsolete option CLASS_DIAGRAM was found and set to NO.\n");
           optClassGraph->setValue(QString::fromLatin1("TEXT"));
+        }
+      }
+    }
+  }
+
+  // update TIMESTAMP based on HTML_TIMESTAMP and LATEX_TIMESTAMP
+  auto HtmlTimestamp = options.find(QString::fromLatin1("HTML_TIMESTAMP"));
+  auto timestamp     = options.find(QString::fromLatin1("TIMESTAMP"));
+  if (HtmlTimestamp!=options.end() && timestamp!=options.end())
+  {
+    if ((*HtmlTimestamp)->kind()==Input::Obsolete)
+    {
+      InputObsolete *htmlTimestamp_ = dynamic_cast<InputObsolete*>(*HtmlTimestamp);
+      InputString   *timestamp_ = dynamic_cast<InputString*>(*timestamp);
+      if (htmlTimestamp_->orgKind()==Input::Bool)
+      {
+        const QVariant &htmlTimestampValue = htmlTimestamp_->value();
+        bool isValid = false;
+        bool bTimestamp = InputBool::convertToBool(htmlTimestampValue,isValid);
+        if (isValid && bTimestamp)
+        {
+          config_warn("Changing TIMESTAMP option to YES because obsolete option HTML_TIMESTAMP was found and was set to YES.\n");
+          timestamp_->setValue(QString::fromLatin1("YES"));
+        }
+      }
+    }
+  }
+
+  auto LatexTimestamp = options.find(QString::fromLatin1("LATEX_TIMESTAMP"));
+  if (LatexTimestamp!=options.end() && timestamp!=options.end())
+  {
+    if ((*LatexTimestamp)->kind()==Input::Obsolete)
+    {
+      InputObsolete *latexTimestamp_ = dynamic_cast<InputObsolete*>(*LatexTimestamp);
+      InputString   *timestamp_ = dynamic_cast<InputString*>(*timestamp);
+      if (latexTimestamp_->orgKind()==Input::Bool)
+      {
+        const QVariant &latexTimestampValue = latexTimestamp_->value();
+        bool isValid = false;
+        bool bTimestamp = InputBool::convertToBool(latexTimestampValue,isValid);
+        if (isValid && bTimestamp)
+        {
+          config_warn("Changing TIMESTAMP option to YES because obsolete option LATEX_TIMESTAMP was found and was set to YES.\n");
+          timestamp_->setValue(QString::fromLatin1("YES"));
+        }
+      }
+    }
+  }
+
+  auto fontName = options.find(QString::fromLatin1("DOT_FONTNAME"));
+  auto fontSize = options.find(QString::fromLatin1("DOT_FONTSIZE"));
+  QString fontNameValue;
+  QString fontSizeValue;
+  // correct DOT_FONTNAME if needed
+  if (fontName!=options.end())
+  {
+    if ((*fontName)->kind()==Input::Obsolete)
+    {
+      InputObsolete *fontName_ = dynamic_cast<InputObsolete*>(*fontName);
+      fontNameValue = fontName_->value().toString();
+      if (fontNameValue == QString::fromLatin1("FreeSans") ||
+          fontNameValue == QString::fromLatin1("FreeSans.ttf"))
+      {
+        config_warn("doxygen no longer ships with the FreeSans font.\n"
+                    "  You may want to clear or change DOT_FONTNAME.\n"
+                    "  Otherwise you run the risk that the wrong font is being used for dot generated graphs.\n");
+      }
+    }
+  }
+
+  if (fontSize!=options.end())
+  {
+    if ((*fontSize)->kind()==Input::Obsolete)
+    {
+      InputObsolete *fontSize_ = dynamic_cast<InputObsolete*>(*fontSize);
+      fontSizeValue = fontSize_->value().toString();
+    }
+  }
+
+  if (fontName!=options.end() || fontSize!=options.end())
+  {
+    auto commonAttrOpt = options.find(QString::fromLatin1("DOT_COMMON_ATTR"));
+    auto edgeAttrOpt = options.find(QString::fromLatin1("DOT_EDGE_ATTR"));
+    if ((*commonAttrOpt)->kind()==Input::String)
+    {
+      QString commonAttrValue;
+      InputString *commonAttr_ = dynamic_cast<InputString*>(*commonAttrOpt);
+      if ((*commonAttr_).stringMode()==InputString::StringFree)
+      {
+        if (fontName!=options.end())
+        {
+          updateAttribute(commonAttr_, "fontname", fontNameValue);
+        }
+        if (fontSize!=options.end())
+        {
+          updateAttribute(commonAttr_, "fontsize", fontSizeValue);
+        }
+      }
+    }
+    if ((*edgeAttrOpt)->kind()==Input::String)
+    {
+      QString edgeAttrValue;
+      InputString *edgeAttr_ = dynamic_cast<InputString*>(*edgeAttrOpt);
+      if ((*edgeAttr_).stringMode()==InputString::StringFree)
+      {
+        if (fontName!=options.end())
+        {
+          updateAttribute(edgeAttr_, "labelfontname", fontNameValue);
+        }
+        if (fontSize!=options.end())
+        {
+          updateAttribute(edgeAttr_, "labelfontsize", fontSizeValue);
         }
       }
     }

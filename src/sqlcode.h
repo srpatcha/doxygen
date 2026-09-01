@@ -17,16 +17,13 @@
 #ifndef SQLCODE_H
 #define SQLCODE_H
 
-#include "parserintf.h"
+#include <memory>
 
-class FileDef;
-class MemberDef;
-class QCString;
-class Definition;
+#include "parserintf.h"
 
 /** SQL scanner. Only support syntax highlighting of code at the moment.
  */
-class SQLCodeParser : public CodeParserInterface
+class SQLCodeParser final : public CodeParserInterface
 {
   public:
     SQLCodeParser();
@@ -34,8 +31,8 @@ class SQLCodeParser : public CodeParserInterface
     NON_COPYABLE(SQLCodeParser)
 
     void parseCode(OutputCodeList &codeOutIntf,
-                   const QCString &scopeName,
-                   const QCString &input,
+                   const DString &scopeName,
+                   const DString &input,
                    SrcLangExt,
                    bool stripCodeComments,
                    const CodeParserOptions &options

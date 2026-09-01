@@ -13,42 +13,42 @@
  *
  */
 
-#include <cstdlib>
-#include <cassert>
-#include <sstream>
+// own header
+#include "dot.h"
+
+// standard includes
 #include <algorithm>
 #include <mutex>
+#include <sstream>
 
+// other includes
 #include "config.h"
-#include "dot.h"
-#include "dotrunner.h"
-#include "dotfilepatcher.h"
-#include "util.h"
-#include "portable.h"
-#include "message.h"
-#include "doxygen.h"
-#include "language.h"
-#include "indexlist.h"
 #include "dir.h"
+#include "doxygen.h"
+#include "indexlist.h"
+#include "message.h"
+#include "portable.h"
+#include "textstream.h"
+#include "util.h"
 
 #define MAP_CMD "cmapx"
 
 //--------------------------------------------------------------------
 
-static QCString g_dotFontPath;
+static DString g_dotFontPath;
 
 static std::mutex g_dotManagerMutex;
 
-static void setDotFontPath(const QCString &path)
+static void setDotFontPath(const DString &path)
 {
-  ASSERT(g_dotFontPath.isEmpty());
+  ASSERT(g_dotFontPath.empty());
   g_dotFontPath = Portable::getenv("DOTFONTPATH");
-  QCString newFontPath = Config_getString(DOT_FONTPATH);
-  if (!newFontPath.isEmpty() && !path.isEmpty())
+  DString newFontPath = Config_getString(DOT_FONTPATH);
+  if (!newFontPath.empty() && !path.empty())
   {
     newFontPath.prepend(path+Portable::pathListSeparator());
   }
-  else if (newFontPath.isEmpty() && !path.isEmpty())
+  else if (newFontPath.empty() && !path.empty())
   {
     newFontPath=path;
   }
@@ -62,7 +62,7 @@ static void setDotFontPath(const QCString &path)
 
 static void unsetDotFontPath()
 {
-  if (g_dotFontPath.isEmpty())
+  if (g_dotFontPath.empty())
   {
     Portable::unsetenv("DOTFONTPATH");
   }
@@ -104,7 +104,7 @@ void DotManager::addJob(const DotJob &newJob)
   m_jobs.push_back(newJob);
 }
 
-DotFilePatcher *DotManager::createFilePatcher(const QCString &fileName)
+DotFilePatcher *DotManager::createFilePatcher(const DString &fileName)
 {
   std::lock_guard<std::mutex> lock(g_dotManagerMutex);
   auto patcher = m_filePatchers.find(fileName.str());
@@ -112,7 +112,7 @@ DotFilePatcher *DotManager::createFilePatcher(const QCString &fileName)
   if (patcher != m_filePatchers.end()) return &(patcher->second);
 
   auto rv = m_filePatchers.emplace(fileName.str(), fileName);
-  assert(rv.second);
+  ASSERT(rv.second);
   return &(rv.first->second);
 }
 
@@ -133,26 +133,26 @@ bool DotManager::run()
     }
   }
 
-  bool setPath=FALSE;
+  bool setPath=false;
   if (Config_getBool(GENERATE_HTML))
   {
     setDotFontPath(Config_getString(HTML_OUTPUT));
-    setPath=TRUE;
+    setPath=true;
   }
   else if (Config_getBool(GENERATE_LATEX))
   {
     setDotFontPath(Config_getString(LATEX_OUTPUT));
-    setPath=TRUE;
+    setPath=true;
   }
   else if (Config_getBool(GENERATE_RTF))
   {
     setDotFontPath(Config_getString(RTF_OUTPUT));
-    setPath=TRUE;
+    setPath=true;
   }
   else if (Config_getBool(GENERATE_DOCBOOK))
   {
     setDotFontPath(Config_getString(DOCBOOK_OUTPUT));
-    setPath=TRUE;
+    setPath=true;
   }
 
   bool ok = m_runner.run(m_jobs);
@@ -162,7 +162,7 @@ bool DotManager::run()
     unsetDotFontPath();
   }
 
-  if (!ok) return FALSE;
+  if (!ok) return false;
 
   // patch the output file and insert the maps and figures
   size_t i=1;
@@ -175,7 +175,7 @@ bool DotManager::run()
     if (fp.second.isSVGFile())
     {
       msg("Patching output file {}/{}\n",i,numFilePatchers);
-      if (!fp.second.run()) return FALSE;
+      if (!fp.second.run()) return false;
       i++;
     }
   }
@@ -184,18 +184,18 @@ bool DotManager::run()
     if (!fp.second.isSVGFile())
     {
       msg("Patching output file {}/{}\n",i,numFilePatchers);
-      if (!fp.second.run()) return FALSE;
+      if (!fp.second.run()) return false;
       i++;
     }
   }
-  return TRUE;
+  return true;
 }
 
 //--------------------------------------------------------------------
 
-void writeDotGraphFromFile(const QCString &inFile,const QCString &outDir,
-                           const QCString &outFile,GraphOutputFormat format,
-                           const QCString &srcFile,int srcLine,bool toIndex)
+void writeDotGraphFromFile(const DString &inFile,const DString &outDir,
+                           const DString &outFile,GraphOutputFormat format,
+                           const DString &srcFile,int srcLine,bool toIndex)
 {
   Dir d(outDir.str());
   if (!d.exists())
@@ -203,29 +203,29 @@ void writeDotGraphFromFile(const QCString &inFile,const QCString &outDir,
     term("Output dir {} does not exist!\n",outDir);
   }
 
-  QCString imgExt = getDotImageExtension();
-  QCString imgName = outFile+"."+imgExt;
-  QCString absImgName = d.absPath()+"/"+imgName;
-  QCString absOutFile = d.absPath()+"/"+outFile;
+  DString imgExt = getDotImageExtension();
+  DString imgName = outFile+"."+imgExt;
+  DString absImgName = d.absPath()+"/"+imgName;
+  DString absOutFile = d.absPath()+"/"+outFile;
 
-  QCString dotArgs;
+  DString dotArgs;
   if (format==GraphOutputFormat::BITMAP)
   {
-    dotArgs = QCString("-T") + Config_getEnumAsString(DOT_IMAGE_FORMAT) + " -o \"" + absImgName + "\" \"" + inFile + "\"";
+    dotArgs = DString("-T") + Config_getEnumAsString(DOT_IMAGE_FORMAT) + " -o \"" + absImgName + "\" \"" + inFile + "\"";
   }
   else // format==GraphOutputFormat::EPS
   {
     if (Config_getBool(USE_PDFLATEX))
     {
-      dotArgs = QCString("-Tpdf -o \"") + absOutFile + ".pdf\" \"" + inFile + "\"";
+      dotArgs = DString("-Tpdf -o \"") + absOutFile + ".pdf\" \"" + inFile + "\"";
     }
     else
     {
-      dotArgs = QCString("-Teps -o \"") + absOutFile + ".eps\" \"" + inFile + "\"";
+      dotArgs = DString("-Teps -o \"") + absOutFile + ".eps\" \"" + inFile + "\"";
     }
   }
 
-  if (Portable::system(Doxygen::verifiedDotPath, dotArgs, FALSE) != 0)
+  if (Portable::system(Doxygen::verifiedDotPath, dotArgs, false) != 0)
   {
     return;
   }
@@ -247,10 +247,10 @@ void writeDotGraphFromFile(const QCString &inFile,const QCString &outDir,
  *  \param newFile signal whether or not the file has been generated before (value `false`) or not.
  */
 void writeDotImageMapFromFile(TextStream &t,
-                            const QCString &inFile, const QCString &outDir,
-                            const QCString &relPath, const QCString &baseName,
-                            const QCString &context,int graphId,
-                            const QCString &srcFile,int srcLine, bool newFile)
+                            const DString &inFile, const DString &outDir,
+                            const DString &relPath, const DString &baseName,
+                            const DString &context,int graphId,
+                            const DString &srcFile,int srcLine, bool newFile)
 {
 
   Dir d(outDir.str());
@@ -259,25 +259,25 @@ void writeDotImageMapFromFile(TextStream &t,
     term("Output dir {} does not exist!\n",outDir);
   }
 
-  QCString mapName = baseName+".cmapx";
-  QCString imgExt = getDotImageExtension();
-  QCString imgName = baseName+"."+imgExt;
-  QCString absOutFile = d.absPath()+"/"+mapName;
+  DString mapName = baseName+".cmapx";
+  DString imgExt = getDotImageExtension();
+  DString imgName = baseName+"."+imgExt;
+  DString absOutFile = d.absPath()+"/"+mapName;
 
-  QCString dotArgs = QCString("-T" MAP_CMD " -o \"") + absOutFile + "\" \"" + inFile + "\"";
-  if (Portable::system(Doxygen::verifiedDotPath, dotArgs, FALSE) != 0)
+  DString dotArgs = DString("-T" MAP_CMD " -o \"") + absOutFile + "\" \"" + inFile + "\"";
+  if (Portable::system(Doxygen::verifiedDotPath, dotArgs, false) != 0)
   {
     return;
   }
 
   if (imgExt=="svg") // vector graphics
   {
-    QCString svgName = outDir+"/"+baseName+".svg";
+    DString svgName = outDir+"/"+baseName+".svg";
     DotFilePatcher::writeSVGFigureLink(t,relPath,baseName,svgName);
     if (newFile)
     {
       DotFilePatcher patcher(svgName);
-      patcher.addSVGConversion("",TRUE,context,TRUE,graphId);
+      patcher.addSVGConversion("",true,context,true,graphId);
       patcher.run();
     }
   }
@@ -286,7 +286,7 @@ void writeDotImageMapFromFile(TextStream &t,
     TextStream tt;
     t << "<img src=\"" << relPath << imgName << "\" alt=\""
       << imgName << "\" border=\"0\" usemap=\"#" << mapName << "\"/>\n";
-    DotFilePatcher::convertMapFile(tt, absOutFile, relPath ,TRUE, context);
+    DotFilePatcher::convertMapFile(tt, absOutFile, relPath ,true, context);
     if (!tt.empty())
     {
       t << "<map name=\"" << mapName << "\" id=\"" << mapName << "\">";

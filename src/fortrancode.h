@@ -1,7 +1,5 @@
 /******************************************************************************
  *
- *
- *
  * Copyright (C) 1997-2015 by Dimitri van Heesch.
  *
  * Permission to use, copy, modify, and distribute this software and its
@@ -20,12 +18,6 @@
 
 #include "parserintf.h"
 
-class OutputCodeList;
-class FileDef;
-class MemberDef;
-class QCString;
-class Definition;
-
 class FortranCodeParser : public CodeParserInterface
 {
   public:
@@ -34,8 +26,8 @@ class FortranCodeParser : public CodeParserInterface
     NON_COPYABLE(FortranCodeParser)
 
     void parseCode(OutputCodeList &codeOutIntf,
-                   const QCString &scopeName,
-                   const QCString &input,
+                   const DString &scopeName,
+                   const DString &input,
                    SrcLangExt lang,
                    bool stripCodeComments,
                    const CodeParserOptions &options
@@ -47,13 +39,13 @@ class FortranCodeParser : public CodeParserInterface
     std::unique_ptr<Private> p;
 };
 
-class FortranCodeParserFree : public FortranCodeParser
+class FortranCodeParserFree final : public FortranCodeParser
 {
   public:
     FortranCodeParserFree() : FortranCodeParser(FortranFormat::Free) { }
 };
 
-class FortranCodeParserFixed : public FortranCodeParser
+class FortranCodeParserFixed final : public FortranCodeParser
 {
   public:
     FortranCodeParserFixed() : FortranCodeParser(FortranFormat::Fixed) { }

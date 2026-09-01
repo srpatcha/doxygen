@@ -1,8 +1,5 @@
 /******************************************************************************
  *
- *
- *
- *
  * Copyright (C) 1997-2015 by Dimitri van Heesch.
  *
  * Permission to use, copy, modify, and distribute this software and its
@@ -19,21 +16,20 @@
 #ifndef MANDOCVISITOR_H
 #define MANDOCVISITOR_H
 
-#include <iostream>
 #include <array>
 
-#include "qcstring.h"
-#include "docvisitor.h"
 #include "docnode.h"
+#include "docvisitor.h"
+#include "dstring.h"
 
 class OutputCodeList;
 class TextStream;
 
 /*! @brief Concrete visitor implementation for LaTeX output. */
-class ManDocVisitor : public DocVisitor
+class ManDocVisitor final : public DocVisitor
 {
   public:
-    ManDocVisitor(TextStream &t,OutputCodeList &ci,const QCString &langExt);
+    ManDocVisitor(TextStream &t,OutputCodeList &ci,const DString &langExt);
 
     //--------------------------------------
     // visitor functions for leaf nodes
@@ -118,7 +114,7 @@ class ManDocVisitor : public DocVisitor
     // helper functions
     //--------------------------------------
 
-    void filter(const QCString &str, const bool retainNewline = false);
+    void filter(const DString &str, const bool retainNewline = false, const bool citeEntry = false);
 
     //--------------------------------------
     // state variables
@@ -130,7 +126,7 @@ class ManDocVisitor : public DocVisitor
     bool m_hide;
     bool m_firstCol;
     int  m_indent;
-    QCString m_langExt;
+    DString m_langExt;
 
     struct ManListItemInfo
     {
@@ -139,7 +135,7 @@ class ManDocVisitor : public DocVisitor
     };
     static const int maxIndentLevels = 13;
 
-    std::array<ManListItemInfo,maxIndentLevels> m_listItemInfo;
+    std::array<ManListItemInfo,maxIndentLevels> m_listItemInfo {};
 };
 
 #endif

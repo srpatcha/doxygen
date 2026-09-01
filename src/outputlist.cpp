@@ -22,16 +22,16 @@
  *  the call to all output generators.
  */
 
+// own header
+#include "outputlist.h"
+
+// standard includes
 #include <atomic>
 
-#include "outputlist.h"
-#include "outputgen.h"
-#include "config.h"
-#include "message.h"
-#include "definition.h"
+// other includes
 #include "docparser.h"
-#include "vhdldocgen.h"
 #include "doxygen.h"
+#include "message.h"
 
 static AtomicInt g_outId;
 
@@ -165,11 +165,11 @@ void OutputList::popGeneratorState()
   syncEnabled();
 }
 
-void OutputList::generateDoc(const QCString &fileName,int startLine,
+void OutputList::generateDoc(const DString &fileName,int startLine,
                   const Definition *ctx,const MemberDef * md,
-                  const QCString &docStr,const DocOptions &options)
+                  const DString &docStr,const DocOptions &options)
 {
-  if (docStr.isEmpty()) return;
+  if (docStr.empty()) return;
 
   auto count=std::count_if(m_outputGenList.begin(),m_outputGenList.end(),
                            [](const auto &e) { return e.enabled; });
@@ -189,14 +189,14 @@ void OutputList::generateDoc(const QCString &fileName,int startLine,
   if (ast && count>0) writeDoc(ast.get(),ctx,md,options.sectionLevel());
 }
 
-void OutputList::startFile(const QCString &name,bool isSource,const QCString &manName,const QCString &title, int hierarchyLevel)
+void OutputList::startFile(const DString &name,bool isSource,const DString &manName,const DString &title, int hierarchyLevel)
 {
   newId();
   m_codeGenList.setId(m_id);
   foreach(&OutputGenIntf::startFile,name,isSource,manName,title,m_id,hierarchyLevel);
 }
 
-void OutputList::parseText(const QCString &textStr)
+void OutputList::parseText(const DString &textStr)
 {
 
   auto count=std::count_if(m_outputGenList.begin(),m_outputGenList.end(),
@@ -210,6 +210,52 @@ void OutputList::parseText(const QCString &textStr)
   auto ast { validatingParseText(*parser.get(), textStr) };
 
   if (ast && count>0) writeDoc(ast.get(),nullptr,nullptr);
+}
+
+//------------------------------------------------------------------------
+// TextGeneratorOLImpl implementation
+//------------------------------------------------------------------------
+
+TextGeneratorOLImpl::TextGeneratorOLImpl(OutputList &ol) : m_ol(ol)
+{
+}
+
+void TextGeneratorOLImpl::writeString(std::string_view s,bool keepSpaces) const
+{
+  if (s.empty()) return;
+  //printf("TextGeneratorOlImpl::writeString('%s',%d)\n",s,keepSpaces);
+  if (keepSpaces)
+  {
+    for (char c : s)
+    {
+      if (c == ' ')
+      {
+        m_ol.writeNonBreakableSpace(1);
+      }
+      else
+      {
+        m_ol.docify(std::string_view(&c, 1));
+      }
+    }
+  }
+  else
+  {
+    m_ol.docify(s);
+  }
+}
+
+void TextGeneratorOLImpl::writeBreak(int indent) const
+{
+  m_ol.lineBreak("typebreak");
+  for (int i = 0; i < indent; ++i) m_ol.writeNonBreakableSpace(3);
+}
+
+void TextGeneratorOLImpl::writeLink(const DString &extRef,const DString &file,
+                                    const DString &anchor,std::string_view text
+                                   ) const
+{
+  //printf("TextGeneratorOlImpl::writeLink('%s')\n",text);
+  m_ol.writeObjectLink(extRef,file,anchor,text);
 }
 
 //--------------------------------------------------------------------------
@@ -228,7 +274,7 @@ void OutputCodeRecorder::startNewLine(int lineNr)
   }
 }
 
-void OutputCodeRecorder::codify(const QCString &s)
+void OutputCodeRecorder::codify(const DString &s)
 {
   m_calls.emplace_back([]() { return true; },
                        [=](OutputCodeList *ol) { ol->codify(s); },
@@ -255,9 +301,9 @@ void OutputCodeRecorder::endSpecialComment()
 }
 
 void OutputCodeRecorder::writeCodeLink(CodeSymbolType type,
-                   const QCString &ref,const QCString &file,
-                   const QCString &anchor,const QCString &name,
-                   const QCString &tooltip)
+                   const DString &ref,const DString &file,
+                   const DString &anchor,const DString &name,
+                   const DString &tooltip)
 {
   m_calls.emplace_back([](){ return true; },
                        [=](OutputCodeList *ol) { ol->writeCodeLink(type,ref,file,anchor,name,tooltip); },
@@ -265,7 +311,7 @@ void OutputCodeRecorder::writeCodeLink(CodeSymbolType type,
                       );
 }
 
-void OutputCodeRecorder::writeLineNumber(const QCString &ref,const QCString &file,const QCString &anchor,
+void OutputCodeRecorder::writeLineNumber(const DString &ref,const DString &file,const DString &anchor,
                      int lineNumber, bool writeLineAnchor)
 {
   startNewLine(lineNumber);
@@ -275,8 +321,8 @@ void OutputCodeRecorder::writeLineNumber(const QCString &ref,const QCString &fil
                       );
 }
 
-void OutputCodeRecorder::writeTooltip(const QCString &id, const DocLinkInfo &docInfo, const QCString &decl,
-                  const QCString &desc, const SourceLinkInfo &defInfo, const SourceLinkInfo &declInfo)
+void OutputCodeRecorder::writeTooltip(const DString &id, const DocLinkInfo &docInfo, const DString &decl,
+                  const DString &desc, const SourceLinkInfo &defInfo, const SourceLinkInfo &declInfo)
 {
   m_calls.emplace_back([](){ return true; },
                        [=](OutputCodeList *ol) { ol->writeTooltip(id,docInfo,decl,desc,defInfo,declInfo); },
@@ -301,7 +347,7 @@ void OutputCodeRecorder::endCodeLine()
                       );
 }
 
-void OutputCodeRecorder::startFontClass(const QCString &c)
+void OutputCodeRecorder::startFontClass(const DString &c)
 {
   m_calls.emplace_back([]() { return true; },
                        [=](OutputCodeList *ol) { ol->startFontClass(c); },
@@ -317,7 +363,7 @@ void OutputCodeRecorder::endFontClass()
                       );
 }
 
-void OutputCodeRecorder::writeCodeAnchor(const QCString &name)
+void OutputCodeRecorder::writeCodeAnchor(const DString &name)
 {
   m_calls.emplace_back([]() { return true; },
                        [=](OutputCodeList *ol){ ol->writeCodeAnchor(name); },
@@ -325,15 +371,15 @@ void OutputCodeRecorder::writeCodeAnchor(const QCString &name)
                       );
 }
 
-void OutputCodeRecorder::startCodeFragment(const QCString &style)
+void OutputCodeRecorder::startCodeFragment(const DString &style)
 {
 }
 
-void OutputCodeRecorder::endCodeFragment(const QCString &style)
+void OutputCodeRecorder::endCodeFragment(const DString &style)
 {
 }
 
-void OutputCodeRecorder::startFold(int lineNr,const QCString &startMarker,const QCString &endMarker)
+void OutputCodeRecorder::startFold(int lineNr,const DString &startMarker,const DString &endMarker)
 {
   m_calls.emplace_back([]() { return true; },
                        [=](OutputCodeList *ol) { ol->startFold(lineNr,startMarker,endMarker); },

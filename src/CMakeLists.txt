@@ -260,11 +260,13 @@ add_library(doxymain STATIC
     dotnode.cpp
     dotrunner.cpp
     doxygen.cpp
+    dstring.cpp
     eclipsehelp.cpp
     emoji.cpp
     entry.cpp
     filedef.cpp
     fileinfo.cpp
+    filename.cpp
     fileparser.cpp
     formula.cpp
     ftvhelp.cpp
@@ -280,6 +282,7 @@ add_library(doxymain STATIC
     latexdocvisitor.cpp
     latexgen.cpp
     layout.cpp
+    linkifytext.cpp
     mandocvisitor.cpp
     mangen.cpp
     markdown.cpp
@@ -295,7 +298,6 @@ add_library(doxymain STATIC
     pagedef.cpp
     perlmodgen.cpp
     plantuml.cpp
-    qcstring.cpp
     qhp.cpp
     reflist.cpp
     regex.cpp
@@ -314,6 +316,7 @@ add_library(doxymain STATIC
     tagreader.cpp
     textdocvisitor.cpp
     tooltip.cpp
+    types.cpp
     utf8.cpp
     util.cpp
     vhdldocgen.cpp

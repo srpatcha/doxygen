@@ -1,8 +1,6 @@
 /******************************************************************************
  *
- *
- *
- * Copyright (C) 1997-2015 by Dimitri van Heesch.
+ * Copyright (C) 1997-2026 by Dimitri van Heesch.
  *
  * Permission to use, copy, modify, and distribute this software and its
  * documentation under the terms of the GNU General Public License is hereby
@@ -15,21 +13,19 @@
  *
  */
 
-#include <stdexcept>
-
-#include <stdlib.h>
-
-#include "doxygen.h"
+// own header
 #include "outputgen.h"
+
+// other includes
 #include "message.h"
 #include "portable.h"
 
-OutputGenerator::OutputGenerator(const QCString &dir) : m_t(nullptr), m_dir(dir)
+OutputGenerator::OutputGenerator(const DString &dir) : m_t(nullptr), m_dir(dir)
 {
   //printf("OutputGenerator::OutputGenerator()\n");
 }
 
-void OutputGenerator::startPlainFile(const QCString &name)
+void OutputGenerator::startPlainFile(const DString &name)
 {
   //printf("startPlainFile(%s)\n",qPrint(name));
   m_fileName=m_dir+"/"+name;
@@ -49,13 +45,44 @@ void OutputGenerator::endPlainFile()
   m_fileName.clear();
 }
 
-QCString OutputGenerator::dir() const
+DString OutputGenerator::dir() const
 {
   return m_dir;
 }
 
-QCString OutputGenerator::fileName() const
+DString OutputGenerator::fileName() const
 {
   return m_fileName;
 }
+
+size_t updateColumnCount(const char *s,size_t col)
+{
+  if (s)
+  {
+    const int tabSize = Config_getInt(TAB_SIZE);
+    char c;
+    while ((c=*s++))
+    {
+      switch(c)
+      {
+        case '\t': col+=tabSize - (col%tabSize);
+                   break;
+        case '\n': col=0;
+                   break;
+        default:
+                   col++;
+                   if (c<0) // multi-byte character
+                   {
+                     int numBytes = getUTF8CharNumBytes(c);
+                     for (int i=0;i<numBytes-1 && (c=*s++);i++) {} // skip over extra chars
+                     if (c==0) return col; // end of string half way a multibyte char
+                   }
+                   break;
+      }
+    }
+  }
+  return col;
+}
+
+
 

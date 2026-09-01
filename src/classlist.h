@@ -1,8 +1,6 @@
 /******************************************************************************
  *
- *
- *
- * Copyright (C) 1997-2015 by Dimitri van Heesch.
+ * Copyright (C) 1997-2026 by Dimitri van Heesch.
  *
  * Permission to use, copy, modify, and distribute this software and its
  * documentation under the terms of the GNU General Public License is hereby
@@ -18,20 +16,20 @@
 #ifndef CLASSLIST_H
 #define CLASSLIST_H
 
-#include "linkedmap.h"
 #include "classdef.h"
+#include "linkedmap.h"
 
 class Definition;
 
-class ClassLinkedMap : public LinkedMap<ClassDef>
+class ClassLinkedMap final : public LinkedMap<ClassDef>
 {
 };
 
-class ClassLinkedRefMap : public LinkedRefMap<ClassDef>
+class ClassLinkedRefMap final : public LinkedRefMap<ClassDef>
 {
   public:
     bool declVisible(const ClassDef::CompoundType *filter=nullptr) const;
-    void writeDeclaration(OutputList &ol,const ClassDef::CompoundType *filter,const QCString &header,bool localNames) const;
+    void writeDeclaration(OutputList &ol,const ClassDef::CompoundType *filter,const DString &header,bool localNames) const;
     void writeDocumentation(OutputList &ol,const Definition * container=nullptr) const;
 };
 

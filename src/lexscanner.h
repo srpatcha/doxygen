@@ -1,8 +1,6 @@
 /******************************************************************************
  *
- *
- *
- * Copyright (C) 1997-2021 by Dimitri van Heesch.
+ * Copyright (C) 1997-2026 by Dimitri van Heesch.
  *
  * Permission to use, copy, modify, and distribute this software and its
  * documentation under the terms of the GNU General Public License is hereby
@@ -24,18 +22,18 @@
  *
  *  This is the Lex language parser for doxygen.
  */
-class LexOutlineParser : public OutlineParserInterface
+class LexOutlineParser final : public OutlineParserInterface
 {
   public:
     LexOutlineParser();
    ~LexOutlineParser() override;
     NON_COPYABLE(LexOutlineParser)
-    void parseInput(const QCString &fileName,
+    void parseInput(const DString &fileName,
                     const char *fileBuf,
                     const std::shared_ptr<Entry> &root,
                     ClangTUParser *clangParser) override;
-    bool needsPreprocessing(const QCString &/* extension */) const override { return TRUE; }
-    void parsePrototype(const QCString &/* text */) override {}
+    bool needsPreprocessing(const DString &/* extension */) const override { return true; }
+    void parsePrototype(const DString &/* text */) override {}
 
   private:
     struct Private;

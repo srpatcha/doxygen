@@ -14,80 +14,8 @@
         <translation>Error</translation>
     </message>
     <message>
-        <source>Possible values are:</source>
-        <translation>Los valores posibles son:</translation>
-    </message>
-    <message>
-        <source>and</source>
-        <translation>y</translation>
-    </message>
-    <message>
-        <source>The default value is: &lt;code&gt;%1&lt;/code&gt;.</source>
-        <translation>El valor predeterminado es: &lt;code&gt;%1&lt;/code&gt;.</translation>
-    </message>
-    <message>
-        <source>Minimum value: %1, maximum value: %2, default value: %3.</source>
-        <translation>Valor mínimo: %1, valor máximo: %2, valor predeterminado: %3.</translation>
-    </message>
-    <message>
-        <source>The default value is: system dependent.</source>
-        <translation>El valor predeterminado es: dependiente del sistema.</translation>
-    </message>
-    <message>
-        <source>The default directory is: &lt;code&gt;%1&lt;/code&gt;.</source>
-        <translation>El directorio predeterminado es: &lt;code&gt;%1&lt;/code&gt;.</translation>
-    </message>
-    <message>
-        <source>The default file is: &lt;code&gt;%1&lt;/code&gt;.</source>
-        <translation>El archivo predeterminado es: &lt;code&gt;%1&lt;/code&gt;.</translation>
-    </message>
-    <message>
-        <source>The default file (with absolute path) is: &lt;code&gt;%1&lt;/code&gt;.</source>
-        <translation>El archivo predeterminado (con ruta absoluta) es: &lt;code&gt;%1&lt;/code&gt;.</translation>
-    </message>
-    <message>
-        <source>The file has to be specified with full path.</source>
-        <translation>El archivo debe especificarse con la ruta completa.</translation>
-    </message>
-    <message>
-        <source>The default image is: &lt;code&gt;%1&lt;/code&gt;.</source>
-        <translation>La imagen predeterminada es: &lt;code&gt;%1&lt;/code&gt;.</translation>
-    </message>
-    <message>
-        <source>The default image (with absolute path) is: &lt;code&gt;%1&lt;/code&gt;.</source>
-        <translation>La imagen predeterminada (con ruta absoluta) es: &lt;code&gt;%1&lt;/code&gt;.</translation>
-    </message>
-    <message>
-        <source>The image has to be specified with full path.</source>
-        <translation>La imagen debe especificarse con la ruta completa.</translation>
-    </message>
-    <message>
-        <source>This tag requires that the tag %1 is set to &lt;code&gt;YES&lt;/code&gt;.</source>
-        <translation>Esta etiqueta requiere que la etiqueta %1 esté establecida en &lt;code&gt;YES&lt;/code&gt;.</translation>
-    </message>
-    <message>
-        <source>Note:</source>
-        <translation>Nota:</translation>
-    </message>
-    <message>
-        <source>See also:</source>
-        <translation>Ver también:</translation>
-    </message>
-    <message>
-        <source>Doxygen usage</source>
-        <translation>Uso de Doxygen</translation>
-    </message>
-    <message>
-        <source>External Indexing and Searching</source>
-        <translation>Indexación y búsqueda externa</translation>
-    </message>
-    <message>
-        <source>Linking to external documentation</source>
-        <translation>Enlace a documentación externa</translation>
-    </message>
-    <message>
-        <source>Including formulas</source>
-        <translation>Inclusión de fórmulas</translation>
+        <source>Search settings...</source>
+        <translation>Buscar ajustes...</translation>
     </message>
 </context>
 <context>
@@ -372,6 +300,10 @@ Razón dada: %2</translation>
         <translation>Interfaz gráfica de Doxygen</translation>
     </message>
     <message>
+        <source>Hide documentation</source>
+        <translation>Ocultar documentación</translation>
+    </message>
+    <message>
         <source>Switch language...</source>
         <translation>Cambiar idioma...</translation>
     </message>
@@ -621,6 +553,10 @@ Razón dada: %2</translation>
 <context>
     <name>Wizard</name>
     <message>
+        <source>Project</source>
+        <translation>Proyecto</translation>
+    </message>
+    <message>
         <source>Mode</source>
         <translation>Modo</translation>
     </message>
@@ -668,38 +604,6 @@ Razón dada: %2</translation>
         <translation>Siguiente</translation>
     </message>
     <message>
-        <source>Project</source>
-        <translation>Proyecto</translation>
-    </message>
-    <message>
-        <source>Build</source>
-        <translation>Construcción</translation>
-    </message>
-    <message>
-        <source>Messages</source>
-        <translation>Mensajes</translation>
-    </message>
-    <message>
-        <source>Input</source>
-        <translation>Entrada</translation>
-    </message>
-    <message>
-        <source>Source Browser</source>
-        <translation>Navegador de fuentes</translation>
-    </message>
-    <message>
-        <source>Index</source>
-        <translation>Índice</translation>
-    </message>
-    <message>
-        <source>Preprocessor</source>
-        <translation>Preprocesador</translation>
-    </message>
-    <message>
-        <source>External</source>
-        <translation>Referencias externas</translation>
-    </message>
-    <message>
         <source>Topics</source>
         <translation>Temas</translation>
     </message>
@@ -719,8 +623,8 @@ Razón dada: %2</translation>
         <translation>Idiomas disponibles</translation>
     </message>
     <message>
-        <source>Select and Quit</source>
-        <translation>Seleccionar y salir</translation>
+        <source>Select and Restart</source>
+        <translation>Seleccionar y reiniciar</translation>
     </message>
 </context>
 

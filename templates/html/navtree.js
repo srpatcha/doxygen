@@ -30,7 +30,7 @@ function initNavTree(toroot,relpath,allMembersFile) {
   const ARROW_DOWN = '<span class="arrowhead opened"></span>';
   const ARROW_RIGHT = '<span class="arrowhead closed"></span>';
   const NAVPATH_COOKIE_NAME = '$PROJECTID'+'navpath';
-  const fullSidebar = typeof page_layout!=='undefined' && page_layout==1;
+  const fullSidebar = document.querySelector('meta[name="doxygen-page-layout"]') !== null;
 
   // Helper functions to replace jQuery
   const $  = (selector) => document.querySelector(selector);
@@ -123,7 +123,9 @@ function initNavTree(toroot,relpath,allMembersFile) {
     const i = varName.lastIndexOf('/');
     const n = i>=0 ? varName.substring(i+1) : varName;
     const e = n.replace(/-/g,'_');
-    return window[e];
+    const r = (e[0] >= '0' && e[0] <= '9') ? '_' + e : e;
+
+    return window[r];
   }
 
   const stripPath = (uri) => uri.substring(uri.lastIndexOf('/')+1);
@@ -615,7 +617,7 @@ function initNavTree(toroot,relpath,allMembersFile) {
     let sidenav,mainnav,pagenav,container,navtree,content,header,footer,barWidth=6;
     const RESIZE_COOKIE_NAME = ''+'width';
     const PAGENAV_COOKIE_NAME = ''+'pagenav';
-    const fullSidebar = typeof page_layout!=='undefined' && page_layout==1;
+    const fullSidebar = document.querySelector('meta[name="doxygen-page-layout"]') !== null;
 
     function showHideNavBar() {
       const bar = document.querySelector('div.sm-dox');
@@ -851,22 +853,6 @@ function initNavTree(toroot,relpath,allMembersFile) {
     const content = document.createElement('ul');
     content.className = 'page-outline';
 
-    var entityMap = {
-      '&': '&amp;',
-      '<': '&lt;',
-      '>': '&gt;',
-      '"': '&quot;',
-      "'": '&#39;',
-      '/': '&#x2F;',
-      '`': '&#x60;',
-      '=': '&#x3D;'
-    };
-    function escapeHtml (string) {
-      return String(string).replace(/[&<>"'`=\/]/g, function (s) {
-        return entityMap[s];
-      });
-    }
-
     // for ClassDef/GroupDef/ModuleDef/ConceptDef/DirDef
     const groupSections = [];
     let currentGroup = null;
@@ -887,7 +873,7 @@ function initNavTree(toroot,relpath,allMembersFile) {
         rows = Array.from(table.querySelectorAll("tr[class^='memitem:'] td.memItemRight, tr[class^='memitem:'] td.memItemLeft.anon, tr[class=groupHeader] td"));
       }
       function hasSubItems() {
-        return item.memTitles.length>0 || rows.some(function(el) { 
+        return item.memTitles.length>0 || rows.some(function(el) {
           return el.offsetParent !== null; // check if visible
         });
       }
@@ -927,7 +913,7 @@ function initNavTree(toroot,relpath,allMembersFile) {
           id = tr.getAttribute('id');
           let text = is_anon_enum ? 'anonymous enum' : (td.querySelector(':first-child') ? td.querySelector(':first-child').textContent : '');
           let isMemberGroupHeader = hasClass(tr, 'groupHeader');
-          if (tr.offsetParent !== null && last_id!=id && id!==undefined) {
+          if (tr.offsetParent !== null && last_id!=id && id!==undefined && id!==null) {
             if (isMemberGroupHeader && inMemberGroup) {
               ulStack.pop();
               inMemberGroup=false;
@@ -941,7 +927,7 @@ function initNavTree(toroot,relpath,allMembersFile) {
             span2.style.paddingLeft = parseInt(ulStack.length*16)+'px';
             const ahref = document.createElement('a');
             ahref.setAttribute('href', '#'+id);
-            ahref.textContent = escapeHtml(text);
+            ahref.textContent = text;
             div2.appendChild(span2);
             div2.appendChild(ahref);
             li2.appendChild(div2);
@@ -984,7 +970,7 @@ function initNavTree(toroot,relpath,allMembersFile) {
             span2.style.paddingLeft = parseInt(ulStack.length*16)+'px';
             const ahref = document.createElement('a');
             ahref.setAttribute('href', id);
-            ahref.textContent = escapeHtml(name);
+            ahref.textContent = name;
             div2.appendChild(span2);
             div2.appendChild(ahref);
             li2.appendChild(div2);
@@ -1098,7 +1084,7 @@ function initNavTree(toroot,relpath,allMembersFile) {
         }
         offsets.push({id:'',y:1e10});
         let scrollTarget = undefined, numItems=0;
-        for (let i=0;i<topMapping.length;i++) {
+        for (let i=0;i<offsets.length-1;i++) {
           const ys = offsets[i].y;
           const ye = offsets[i+1].y;
           const id = offsets[i].id;
@@ -1123,7 +1109,7 @@ function initNavTree(toroot,relpath,allMembersFile) {
           const targetPos = offsetTop(scrollTarget)-navy-ulOffset;
           const targetOffset=targetPos+my;
           if ( (scrollDown && targetOffset>lastScrollTargetOffset) ||
-              (!scrollDown && targetOffset<lastScrollTargetOffset)) 
+              (!scrollDown && targetOffset<lastScrollTargetOffset))
           { // force panel to scroll in the same direction as content window
             if (pagenavcontents) {
               pagenavcontents.scrollTo({

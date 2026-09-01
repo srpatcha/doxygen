@@ -13,34 +13,33 @@
  *
  */
 
+// own header
 #include "htmldocvisitor.h"
-#include "docparser.h"
-#include "language.h"
-#include "doxygen.h"
-#include "outputgen.h"
-#include "outputlist.h"
-#include "dot.h"
-#include "message.h"
+
+// other includes
+#include "codefragment.h"
 #include "config.h"
-#include "htmlgen.h"
-#include "parserintf.h"
-#include "msc.h"
 #include "dia.h"
+#include "docparser.h"
+#include "dot.h"
+#include "doxygen.h"
+#include "emoji.h"
+#include "filedef.h"
+#include "fileinfo.h"
+#include "formula.h"
+#include "htmlentity.h"
+#include "indexlist.h"
+#include "language.h"
+#include "memberdef.h"
+#include "mermaid.h"
+#include "message.h"
+#include "msc.h"
+#include "outputlist.h"
+#include "parserintf.h"
+#include "plantuml.h"
+#include "portable.h"
 #include "util.h"
 #include "vhdldocgen.h"
-#include "filedef.h"
-#include "memberdef.h"
-#include "htmlentity.h"
-#include "emoji.h"
-#include "plantuml.h"
-#include "mermaid.h"
-#include "formula.h"
-#include "fileinfo.h"
-#include "indexlist.h"
-#include "portable.h"
-#include "codefragment.h"
-#include "cite.h"
-#include "md5.h"
 
 static const int NUM_HTML_LIST_TYPES = 4;
 static const char g_types[][NUM_HTML_LIST_TYPES] = {"1", "a", "i", "A"};
@@ -77,11 +76,11 @@ static constexpr const char *contexts(contexts_t type)
 }
 static const char *hex="0123456789ABCDEF";
 
-static QCString convertIndexWordToAnchor(const QCString &word)
+static DString convertIndexWordToAnchor(const DString &word)
 {
   static int cnt = 0;
-  QCString result="a";
-  QCString cntStr;
+  DString result="a";
+  DString cntStr;
   result += cntStr.setNum(cnt);
   result += "_";
   cnt++;
@@ -137,13 +136,13 @@ static bool mustBeOutsideParagraph(const DocNodeVariant &n)
                                  /* <summary> */     DocHtmlSummary,
                                                      DocIncOperator >(n))
   {
-    return TRUE;
+    return true;
   }
   const DocVerbatim *dv = std::get_if<DocVerbatim>(&n);
   if (dv)
   {
     DocVerbatim::Type t = dv->type();
-    if (t == DocVerbatim::JavaDocCode || t == DocVerbatim::JavaDocLiteral) return FALSE;
+    if (t == DocVerbatim::JavaDocCode || t == DocVerbatim::JavaDocLiteral) return false;
     return t!=DocVerbatim::HtmlOnly || dv->isBlock();
   }
   const DocStyleChange *sc = std::get_if<DocStyleChange>(&n);
@@ -163,7 +162,7 @@ static bool mustBeOutsideParagraph(const DocNodeVariant &n)
   {
     return !di->isInlineImage();
   }
-  return FALSE;
+  return false;
 }
 
 static bool isDocVerbatimVisible(const DocVerbatim &s)
@@ -175,9 +174,9 @@ static bool isDocVerbatimVisible(const DocVerbatim &s)
     case DocVerbatim::XmlOnly:
     case DocVerbatim::RtfOnly:
     case DocVerbatim::DocbookOnly:
-      return FALSE;
+      return false;
     default:
-      return TRUE;
+      return true;
   }
 }
 
@@ -191,9 +190,9 @@ static bool isDocIncludeVisible(const DocInclude &s)
     case DocInclude::ManInclude:
     case DocInclude::XmlInclude:
     case DocInclude::DocbookInclude:
-      return FALSE;
+      return false;
     default:
-      return TRUE;
+      return true;
   }
 }
 
@@ -202,9 +201,9 @@ static bool isDocIncOperatorVisible(const DocIncOperator &s)
   switch (s.type())
   {
     case DocIncOperator::Skip:
-      return FALSE;
+      return false;
     default:
-      return TRUE;
+      return true;
   }
 }
 
@@ -232,7 +231,7 @@ static bool isInvisibleNode(const DocNodeVariant &node)
 //-------------------------------------------------------------------------
 
 HtmlDocVisitor::HtmlDocVisitor(TextStream &t,OutputCodeList &ci,
-                               const Definition *ctx,const QCString &fn)
+                               const Definition *ctx,const DString &fn)
   : m_t(t), m_ci(ci), m_ctx(ctx), m_fileName(fn)
 {
   if (ctx) m_langExt=ctx->getDefFileExtension();
@@ -302,7 +301,7 @@ void HtmlDocVisitor::operator()(const DocSymbol &s)
     else
     {
       err("HTML: non supported HTML-entity found: {}\n",
-          HtmlEntityMapper::instance().html(s.symbol(),TRUE));
+          HtmlEntityMapper::instance().html(s.symbol(),true));
     }
   }
 }
@@ -321,7 +320,7 @@ void HtmlDocVisitor::operator()(const DocEmoji &s)
   }
 }
 
-void HtmlDocVisitor::writeObfuscatedMailAddress(const QCString &url)
+void HtmlDocVisitor::writeObfuscatedMailAddress(const DString &url)
 {
   if (!Config_getBool(OBFUSCATE_EMAILS))
   {
@@ -329,8 +328,8 @@ void HtmlDocVisitor::writeObfuscatedMailAddress(const QCString &url)
   }
   else
   {
-    m_t << "<a href=\"#\" onclick=\"location.href='mai'+'lto:'";
-    if (!url.isEmpty())
+    m_t << "<a href=\"mai'+'lto:";
+    if (!url.empty())
     {
       const char *p = url.data();
       uint32_t size=3;
@@ -345,7 +344,7 @@ void HtmlDocVisitor::writeObfuscatedMailAddress(const QCString &url)
         if (size==3) size=2; else size=3;
       }
     }
-    m_t << "; return false;\">";
+    m_t << "\">";
   }
 }
 
@@ -354,7 +353,7 @@ void HtmlDocVisitor::operator()(const DocURL &u)
   if (m_hide) return;
   if (u.isEmail()) // mail address
   {
-    QCString url = u.url();
+    DString url = u.url();
     // obfuscate the mail address link
     writeObfuscatedMailAddress(url);
     if (!Config_getBool(OBFUSCATE_EMAILS))
@@ -501,11 +500,11 @@ void HtmlDocVisitor::operator()(const DocStyleChange &s)
       {
         forceEndParagraph(s);
         m_t << "<pre" << s.attribs().toString() << ">";
-        m_insidePre=TRUE;
+        m_insidePre=true;
       }
       else
       {
-        m_insidePre=FALSE;
+        m_insidePre=false;
         m_t << "</pre>";
         forceStartParagraph(s);
       }
@@ -533,8 +532,8 @@ void HtmlDocVisitor::operator()(const DocStyleChange &s)
 void HtmlDocVisitor::operator()(const DocVerbatim &s)
 {
   if (m_hide) return;
-  QCString lang = m_langExt;
-  if (!s.language().isEmpty()) // explicit language setting
+  DString lang = m_langExt;
+  if (!s.language().empty()) // explicit language setting
   {
     lang = s.language();
   }
@@ -592,11 +591,11 @@ void HtmlDocVisitor::operator()(const DocVerbatim &s)
         forceEndParagraph(s);
 
         bool exists = false;
-        auto fileName = writeFileContents(Config_getString(HTML_OUTPUT)+"/inline_dotgraph_", // baseName
-                                          ".dot",                                            // extension
-                                          s.text(),                                          // contents
-                                          exists);
-        if (!fileName.isEmpty())
+        auto fileName = writeInlineGraph(Config_getString(HTML_OUTPUT)+"/inline_dotgraph_", // baseName
+                                         ".dot",                                            // extension
+                                         s.text(),                                          // contents
+                                         exists);
+        if (!fileName.empty())
         {
           m_t << "<div class=\"dotgraph\">\n";
           writeDotFile(fileName,s.relPath(),s.context(),s.srcFile(),s.srcLine(),!exists);
@@ -612,11 +611,11 @@ void HtmlDocVisitor::operator()(const DocVerbatim &s)
         forceEndParagraph(s);
 
         bool exists = false;
-        auto fileName = writeFileContents(Config_getString(HTML_OUTPUT)+"/inline_mscgraph_", // baseName
-                                          ".msc",                                            // extension
-                                          "msc {"+s.text()+"}",                              // contents
-                                          exists);
-        if (!fileName.isEmpty())
+        auto fileName = writeInlineGraph(Config_getString(HTML_OUTPUT)+"/inline_mscgraph_", // baseName
+                                         ".msc",                                            // extension
+                                         "msc {"+s.text()+"}",                              // contents
+                                         exists);
+        if (!fileName.empty())
         {
           m_t << "<div class=\"mscgraph\">\n";
           writeMscFile(fileName,s.relPath(),s.context(),s.srcFile(),s.srcLine(),!exists);
@@ -630,9 +629,9 @@ void HtmlDocVisitor::operator()(const DocVerbatim &s)
     case DocVerbatim::PlantUML:
       {
         forceEndParagraph(s);
-        QCString htmlOutput = Config_getString(HTML_OUTPUT);
-        QCString imgExt = getDotImageExtension();
-        PlantumlManager::OutputFormat format = PlantumlManager::PUML_BITMAP;	// default : PUML_BITMAP
+        DString htmlOutput = Config_getString(HTML_OUTPUT);
+        DString imgExt = getDotImageExtension();
+        PlantumlManager::OutputFormat format = PlantumlManager::PUML_BITMAP; // default : PUML_BITMAP
         if (imgExt=="svg")
         {
           format = PlantumlManager::PUML_SVG;
@@ -658,7 +657,7 @@ void HtmlDocVisitor::operator()(const DocVerbatim &s)
           auto htmlOutput = Config_getString(HTML_OUTPUT);
           auto outputFormat = MermaidManager::OutputFormat::HTML;
           auto imageFormat  = MermaidManager::convertToImageFormat(outputFormat);
-          QCString baseName = MermaidManager::instance().writeMermaidSource(
+          DString baseName = MermaidManager::instance().writeMermaidSource(
                                       htmlOutput,s.exampleFile(),
                                       s.text(),imageFormat,s.srcFile(),s.srcLine());
           m_t << "<div class=\"mermaidgraph\">\n";
@@ -780,10 +779,10 @@ void HtmlDocVisitor::operator()(const DocIncOperator &op)
     forceEndParagraph(op);
     if (!m_hide) m_ci.startCodeFragment("DoxyCode");
     pushHidden(m_hide);
-    m_hide=TRUE;
+    m_hide=true;
   }
-  QCString locLangExt = getFileNameExtension(op.includeFileName());
-  if (locLangExt.isEmpty()) locLangExt = m_langExt;
+  DString locLangExt = getFileNameExtension(op.includeFileName());
+  if (locLangExt.empty()) locLangExt = m_langExt;
   SrcLangExt langExt = getLanguageFromFileName(locLangExt);
   if (op.type()!=DocIncOperator::Skip)
   {
@@ -791,7 +790,7 @@ void HtmlDocVisitor::operator()(const DocIncOperator &op)
     if (!m_hide)
     {
       std::unique_ptr<FileDef> fd;
-      if (!op.includeFileName().isEmpty())
+      if (!op.includeFileName().empty())
       {
         FileInfo cfi( op.includeFileName().str() );
         fd = createFileDef( cfi.dirPath(), cfi.fileName() );
@@ -811,7 +810,7 @@ void HtmlDocVisitor::operator()(const DocIncOperator &op)
                                );
     }
     pushHidden(m_hide);
-    m_hide=TRUE;
+    m_hide=true;
   }
   if (op.isLast())
   {
@@ -837,18 +836,18 @@ void HtmlDocVisitor::operator()(const DocFormula &f)
 
   if (Config_getBool(USE_MATHJAX))
   {
-    QCString text = f.text();
-    bool closeInline = FALSE;
-    if (!bDisplay && !text.isEmpty() && text.at(0)=='$' &&
+    DString text = f.text();
+    bool closeInline = false;
+    if (!bDisplay && !text.empty() && text.at(0)=='$' &&
                       text.at(text.length()-1)=='$')
     {
-      closeInline=TRUE;
+      closeInline=true;
       text = text.mid(1,text.length()-2);
       m_t << "\\(";
     }
-    else if (!bDisplay && !text.isEmpty())
+    else if (!bDisplay && !text.empty())
     {
-      closeInline=TRUE;
+      closeInline=true;
       m_t << "\\(";
     }
     m_t << convertToHtml(text);
@@ -863,10 +862,10 @@ void HtmlDocVisitor::operator()(const DocFormula &f)
 
     enum class ImageType { Light, Dark };
     enum class Visibility { Always, Dark, Light, AutoDark, AutoLight };
-    auto writeFormula = [&](ImageType imgType,Visibility visibility) -> QCString {
+    auto writeFormula = [&](ImageType imgType,Visibility visibility) -> DString {
       // see https://chipcullen.com/how-to-have-dark-mode-image-that-works-with-user-choice for the design idea
       TextStream t;
-      QCString extension = Config_getEnum(HTML_FORMULA_FORMAT)==HTML_FORMULA_FORMAT_t::svg ? ".svg":".png" ;
+      DString extension = Config_getEnum(HTML_FORMULA_FORMAT)==HTML_FORMULA_FORMAT_t::svg ? ".svg":".png" ;
       if (visibility==Visibility::AutoDark || visibility==Visibility::AutoLight)
       {
         t << "<picture>";
@@ -940,7 +939,7 @@ void HtmlDocVisitor::operator()(const DocFormula &f)
 
 void HtmlDocVisitor::operator()(const DocIndexEntry &e)
 {
-  QCString anchor = convertIndexWordToAnchor(e.entry());
+  DString anchor = convertIndexWordToAnchor(e.entry());
   if (e.member())
   {
     anchor.prepend(e.member()->anchor()+"_");
@@ -964,10 +963,10 @@ void HtmlDocVisitor::operator()(const DocCite &cite)
 {
   if (m_hide) return;
   auto opt = cite.option();
-  if (!cite.file().isEmpty())
+  if (!cite.file().empty())
   {
     if (!opt.noCite()) startLink(cite.ref(),cite.file(),cite.relPath(),cite.anchor());
-    filter(cite.getText());
+    filter(cite.getText(), false, true);
     if (!opt.noCite()) endLink();
   }
   else
@@ -1076,7 +1075,7 @@ bool isSeparatedParagraph(const DocSimpleSect &parent,const DocPara &par)
 {
   const DocNodeList &nodes = parent.children();
   auto it = std::find_if(std::begin(nodes),std::end(nodes),[&par](const auto &n) { return holds_value(&par,n); });
-  if (it==std::end(nodes)) return FALSE;
+  if (it==std::end(nodes)) return false;
   size_t count = parent.children().size();
   auto isSeparator = [](auto &&it_) { return std::get_if<DocSimpleSectSep>(&(*it_))!=nullptr; };
   if (count>1 && it==std::begin(nodes)) // it points to first node
@@ -1097,11 +1096,11 @@ bool isSeparatedParagraph(const DocSimpleSect &parent,const DocPara &par)
 static contexts_t getParagraphContext(const DocPara &p,bool &isFirst,bool &isLast)
 {
   contexts_t t=contexts_t::NONE;
-  isFirst=FALSE;
-  isLast=FALSE;
+  isFirst=false;
+  isLast=false;
   if (p.parent())
   {
-    const auto parBlock = std::get_if<DocParBlock>(p.parent());
+    const auto &parBlock = std::get_if<DocParBlock>(p.parent());
     if (parBlock)
     {
       // hierarchy: node N -> para -> parblock -> para
@@ -1131,7 +1130,7 @@ static contexts_t getParagraphContext(const DocPara &p,bool &isFirst,bool &isLas
       }
       return t;
     }
-    const auto docAutoListItem = std::get_if<DocAutoListItem>(p.parent());
+    const auto &docAutoListItem = std::get_if<DocAutoListItem>(p.parent());
     if (docAutoListItem)
     {
       isFirst=isFirstChildNode(docAutoListItem,p);
@@ -1139,23 +1138,23 @@ static contexts_t getParagraphContext(const DocPara &p,bool &isFirst,bool &isLas
       t=contexts_t::STARTLI; // not used
       return t;
     }
-    const auto docSimpleListItem = std::get_if<DocSimpleListItem>(p.parent());
+    const auto &docSimpleListItem = std::get_if<DocSimpleListItem>(p.parent());
     if (docSimpleListItem)
     {
-      isFirst=TRUE;
-      isLast =TRUE;
+      isFirst=true;
+      isLast =true;
       t=contexts_t::STARTLI; // not used
       return t;
     }
-    const auto docParamList = std::get_if<DocParamList>(p.parent());
+    const auto &docParamList = std::get_if<DocParamList>(p.parent());
     if (docParamList)
     {
-      isFirst=TRUE;
-      isLast =TRUE;
+      isFirst=true;
+      isLast =true;
       t=contexts_t::STARTLI; // not used
       return t;
     }
-    const auto docHtmlListItem = std::get_if<DocHtmlListItem>(p.parent());
+    const auto &docHtmlListItem = std::get_if<DocHtmlListItem>(p.parent());
     if (docHtmlListItem)
     {
       isFirst=isFirstChildNode(docHtmlListItem,p);
@@ -1165,7 +1164,7 @@ static contexts_t getParagraphContext(const DocPara &p,bool &isFirst,bool &isLas
       if (!isFirst && !isLast) t = contexts_t::INTERLI;
       return t;
     }
-    const auto docSecRefItem = std::get_if<DocSecRefItem>(p.parent());
+    const auto &docSecRefItem = std::get_if<DocSecRefItem>(p.parent());
     if (docSecRefItem)
     {
       isFirst=isFirstChildNode(docSecRefItem,p);
@@ -1175,7 +1174,7 @@ static contexts_t getParagraphContext(const DocPara &p,bool &isFirst,bool &isLas
       if (!isFirst && !isLast) t = contexts_t::INTERLI;
       return t;
     }
-    const auto docHtmlDescData = std::get_if<DocHtmlDescData>(p.parent());
+    const auto &docHtmlDescData = std::get_if<DocHtmlDescData>(p.parent());
     if (docHtmlDescData)
     {
       isFirst=isFirstChildNode(docHtmlDescData,p);
@@ -1185,7 +1184,7 @@ static contexts_t getParagraphContext(const DocPara &p,bool &isFirst,bool &isLas
       if (!isFirst && !isLast) t = contexts_t::INTERDD;
       return t;
     }
-    const auto docXRefItem = std::get_if<DocXRefItem>(p.parent());
+    const auto &docXRefItem = std::get_if<DocXRefItem>(p.parent());
     if (docXRefItem)
     {
       isFirst=isFirstChildNode(docXRefItem,p);
@@ -1195,7 +1194,7 @@ static contexts_t getParagraphContext(const DocPara &p,bool &isFirst,bool &isLas
       if (!isFirst && !isLast) t = contexts_t::INTERDD;
       return t;
     }
-    const auto docSimpleSect = std::get_if<DocSimpleSect>(p.parent());
+    const auto &docSimpleSect = std::get_if<DocSimpleSect>(p.parent());
     if (docSimpleSect)
     {
       isFirst=isFirstChildNode(docSimpleSect,p);
@@ -1207,12 +1206,12 @@ static contexts_t getParagraphContext(const DocPara &p,bool &isFirst,bool &isLas
         // be included in <dd>..</dd> so avoid addition paragraph
         // markers
       {
-        isFirst=isLast=TRUE;
+        isFirst=isLast=true;
       }
       if (!isFirst && !isLast) t = contexts_t::INTERDD;
       return t;
     }
-    const auto docHtmlCell = std::get_if<DocHtmlCell>(p.parent());
+    const auto &docHtmlCell = std::get_if<DocHtmlCell>(p.parent());
     if (docHtmlCell)
     {
       isFirst=isFirstChildNode(docHtmlCell,p);
@@ -1228,7 +1227,7 @@ static contexts_t getParagraphContext(const DocPara &p,bool &isFirst,bool &isLas
 
 static bool determineIfNeedsTag(const DocPara &p)
 {
-  bool needsTag = FALSE;
+  bool needsTag = false;
   if (p.parent())
   {
     if (holds_one_of_alternatives<DocSection,
@@ -1246,7 +1245,7 @@ static bool determineIfNeedsTag(const DocPara &p)
                          DocHtmlSummary
                          >(*p.parent()))
     {
-      needsTag = TRUE;
+      needsTag = true;
     }
     else if (std::get_if<DocRoot>(p.parent()))
     {
@@ -1280,7 +1279,7 @@ void HtmlDocVisitor::operator()(const DocPara &p)
       const DocNodeVariant &n = *it;
       if (mustBeOutsideParagraph(n))
       {
-        needsTagBefore = FALSE;
+        needsTagBefore = false;
       }
     }
   }
@@ -1292,7 +1291,7 @@ void HtmlDocVisitor::operator()(const DocPara &p)
   bool isLast  = false;
   contexts_t t = getParagraphContext(p,isFirst,isLast);
   //printf("startPara first=%d last=%d\n",isFirst,isLast);
-  if (isFirst && isLast) needsTagBefore=FALSE;
+  if (isFirst && isLast) needsTagBefore=false;
 
   //printf("  needsTagBefore=%d\n",needsTagBefore);
   // write the paragraph tag (if needed)
@@ -1319,7 +1318,7 @@ void HtmlDocVisitor::operator()(const DocPara &p)
       {
         if (mustBeOutsideParagraph(n))
         {
-          needsTagAfter = FALSE;
+          needsTagAfter = false;
         }
         // stop searching if we found a node that is visible
         break;
@@ -1337,7 +1336,7 @@ void HtmlDocVisitor::operator()(const DocPara &p)
   }
 
   //printf("endPara first=%d last=%d\n",isFirst,isLast);
-  if (isFirst && isLast) needsTagAfter=FALSE;
+  if (isFirst && isLast) needsTagAfter=false;
 
   //printf("  needsTagAfter=%d\n",needsTagAfter);
   if (needsTagAfter) m_t << "</p>\n";
@@ -1364,9 +1363,9 @@ void HtmlDocVisitor::operator()(const DocSimpleSect &s)
     case DocSimpleSect::Return:
       m_t << theTranslator->trReturns(); break;
     case DocSimpleSect::Author:
-      m_t << theTranslator->trAuthor(TRUE,TRUE); break;
+      m_t << theTranslator->trAuthor(true,true); break;
     case DocSimpleSect::Authors:
-      m_t << theTranslator->trAuthor(TRUE,FALSE); break;
+      m_t << theTranslator->trAuthor(true,false); break;
     case DocSimpleSect::Version:
       m_t << theTranslator->trVersion(); break;
     case DocSimpleSect::Since:
@@ -1521,15 +1520,15 @@ void HtmlDocVisitor::operator()(const DocHtmlTable &t)
 
   if (t.caption())
   {
-    QCString anc = std::get<DocHtmlCaption>(*t.caption()).anchor();
-    if (!anc.isEmpty())
+    DString anc = std::get<DocHtmlCaption>(*t.caption()).anchor();
+    if (!anc.empty())
     {
       m_t << "<a class=\"anchor\" id=\"" << anc << "\"></a>\n";
     }
   }
 
-  QCString attrs = t.attribs().toString();
-  if (attrs.isEmpty())
+  DString attrs = t.attribs().toString();
+  if (attrs.empty())
   {
     m_t << "<table class=\"doxtable\">\n";
   }
@@ -1592,7 +1591,7 @@ void HtmlDocVisitor::operator()(const DocHRef &href)
   }
   else
   {
-    QCString url = correctURL(href.url(),href.relPath());
+    DString url = correctURL(href.url(),href.relPath());
     m_t << "<a href=\"" << convertToHtml(url)  << "\""
         << href.attribs().toString() << ">";
   }
@@ -1639,35 +1638,35 @@ void HtmlDocVisitor::operator()(const DocImage &img)
   {
     bool inlineImage = img.isInlineImage();
     bool typeSVG = img.isSVG();
-    QCString url = img.url();
+    DString url = img.url();
 
     if (!inlineImage)
     {
       forceEndParagraph(img);
     }
     if (m_hide) return;
-    QCString baseName=stripPath(img.name());
+    DString baseName=stripPath(img.name());
     if (!inlineImage) m_t << "<div class=\"image\">\n";
-    QCString sizeAttribs;
-    if (!img.width().isEmpty())
+    DString sizeAttribs;
+    if (!img.width().empty())
     {
       sizeAttribs+=" width=\""+img.width()+"\"";
     }
-    if (!img.height().isEmpty()) // link to local file
+    if (!img.height().empty()) // link to local file
     {
       sizeAttribs+=" height=\""+img.height()+"\"";
     }
-    // 16 cases: url.isEmpty() | typeSVG | inlineImage | img.hasCaption()
+    // 16 cases: url.empty() | typeSVG | inlineImage | img.hasCaption()
 
     HtmlAttribList attribs = img.attribs();
     if (typeSVG)
     {
       attribs.mergeAttribute("style","pointer-events: none;");
     }
-    QCString alt;
-    QCString attrs = attribs.toString(&alt);
-    QCString src;
-    if (url.isEmpty())
+    DString alt;
+    DString attrs = attribs.toString(&alt);
+    DString src;
+    if (url.empty())
     {
       src = img.relPath()+img.name();
     }
@@ -1750,11 +1749,11 @@ void HtmlDocVisitor::operator()(const DocDotFile &df)
   std::string inBuf;
   if (readInputFile(df.file(),inBuf))
   {
-    auto fileName = writeFileContents(Config_getString(HTML_OUTPUT)+"/"+stripPath(df.file())+"_", // baseName
-                                      ".dot",                                                     // extension
-                                      inBuf,                                                      // contents
-                                      exists);
-    if (!fileName.isEmpty())
+    auto fileName = writeInlineGraph(Config_getString(HTML_OUTPUT)+"/"+stripPath(df.file())+"_", // baseName
+                                     ".dot",                                                     // extension
+                                     inBuf,                                                      // contents
+                                     exists);
+    if (!fileName.empty())
     {
       m_t << "<div class=\"dotgraph\">\n";
       writeDotFile(fileName,df.relPath(),df.context(),df.srcFile(),df.srcLine(),!exists);
@@ -1781,11 +1780,11 @@ void HtmlDocVisitor::operator()(const DocMscFile &df)
   std::string inBuf;
   if (readInputFile(df.file(),inBuf))
   {
-    auto fileName = writeFileContents(Config_getString(HTML_OUTPUT)+"/"+stripPath(df.file())+"_", // baseName
-                                      ".msc",                                                     // extension
-                                      inBuf,                                                      // contents
+    auto fileName = writeInlineGraph(Config_getString(HTML_OUTPUT)+"/"+stripPath(df.file())+"_", // baseName
+                                     ".msc",                                                     // extension
+                                     inBuf,                                                      // contents
                                       exists);
-    if (!fileName.isEmpty())
+    if (!fileName.empty())
     {
       m_t << "<div class=\"mscgraph\">\n";
       writeMscFile(fileName,df.relPath(),df.context(),df.srcFile(),df.srcLine(),!exists);
@@ -1812,11 +1811,11 @@ void HtmlDocVisitor::operator()(const DocDiaFile &df)
   std::string inBuf;
   if (readInputFile(df.file(),inBuf))
   {
-    auto fileName = writeFileContents(Config_getString(HTML_OUTPUT)+"/"+stripPath(df.file())+"_", // baseName
-                                      ".dia",                                                     // extension
-                                      inBuf,                                                      // contents
-                                      exists);
-    if (!fileName.isEmpty())
+    auto fileName = writeInlineGraph(Config_getString(HTML_OUTPUT)+"/"+stripPath(df.file())+"_", // baseName
+                                     ".dia",                                                     // extension
+                                     inBuf,                                                      // contents
+                                     exists);
+    if (!fileName.empty())
     {
       m_t << "<div class=\"diagraph\">\n";
       writeDiaFile(fileName,df.relPath(),df.context(),df.srcFile(),df.srcLine(),!exists);
@@ -1840,22 +1839,22 @@ void HtmlDocVisitor::operator()(const DocPlantUmlFile &df)
   if (m_hide) return;
   if (!Config_getBool(DOT_CLEANUP)) copyFile(df.file(),Config_getString(HTML_OUTPUT)+"/"+stripPath(df.file()));
   forceEndParagraph(df);
-  QCString htmlOutput = Config_getString(HTML_OUTPUT);
-  QCString imgExt = getDotImageExtension();
-  PlantumlManager::OutputFormat format = PlantumlManager::PUML_BITMAP;	// default : PUML_BITMAP
+  DString htmlOutput = Config_getString(HTML_OUTPUT);
+  DString imgExt = getDotImageExtension();
+  PlantumlManager::OutputFormat format = PlantumlManager::PUML_BITMAP; // default : PUML_BITMAP
   if (imgExt=="svg")
   {
     format = PlantumlManager::PUML_SVG;
   }
   std::string inBuf;
   readInputFile(df.file(),inBuf);
-  auto baseNameVector = PlantumlManager::instance().writePlantUMLSource(htmlOutput,QCString(),
-                                    inBuf,format,QCString(),df.srcFile(),df.srcLine(),false);
+  auto baseNameVector = PlantumlManager::instance().writePlantUMLSource(htmlOutput,DString(),
+                                    inBuf,format,DString(),df.srcFile(),df.srcLine(),false);
   for (const auto &bName: baseNameVector)
   {
-    QCString baseName=makeBaseName(bName,".pu");
+    DString baseName=makeBaseName(bName,".pu");
     m_t << "<div class=\"plantumlgraph\">\n";
-    writePlantUMLFile(baseName,df.relPath(),QCString(),df.srcFile(),df.srcLine());
+    writePlantUMLFile(baseName,df.relPath(),DString(),df.srcFile(),df.srcLine());
     if (df.hasCaption())
     {
       m_t << "<div class=\"caption\">\n";
@@ -1882,10 +1881,10 @@ void HtmlDocVisitor::operator()(const DocMermaidFile &df)
     auto htmlOutput   = Config_getString(HTML_OUTPUT);
     auto outputFormat = MermaidManager::OutputFormat::HTML;
     auto imageFormat  = MermaidManager::convertToImageFormat(outputFormat);
-    QCString baseName = MermaidManager::instance().writeMermaidSource(htmlOutput,QCString(),
+    DString baseName = MermaidManager::instance().writeMermaidSource(htmlOutput,DString(),
                                       inBuf,imageFormat,df.srcFile(),df.srcLine());
     m_t << "<div class=\"mermaidgraph\">\n";
-    writeMermaidFile(baseName,df.relPath(),QCString(),df.srcFile(),df.srcLine());
+    writeMermaidFile(baseName,df.relPath(),DString(),df.srcFile(),df.srcLine());
     if (df.hasCaption())
     {
       m_t << "<div class=\"caption\">\n";
@@ -1931,28 +1930,28 @@ void HtmlDocVisitor::operator()(const DocLink &lnk)
 void HtmlDocVisitor::operator()(const DocRef &ref)
 {
   if (m_hide) return;
-  if (!ref.file().isEmpty())
+  if (!ref.file().empty())
   {
-    // when ref.isSubPage()==TRUE we use ref.file() for HTML and
+    // when ref.isSubPage()==true we use ref.file() for HTML and
     // ref.anchor() for LaTeX/RTF
-    startLink(ref.ref(),ref.file(),ref.relPath(),ref.isSubPage() ? QCString() : ref.anchor(), ref.targetTitle());
+    startLink(ref.ref(),ref.file(),ref.relPath(),ref.isSubPage() ? DString() : ref.anchor(), ref.targetTitle());
   }
   if (!ref.hasLinkText()) filter(ref.targetTitle());
   visitChildren(ref);
-  if (!ref.file().isEmpty()) endLink();
+  if (!ref.file().empty()) endLink();
   //m_t << " ";
 }
 
 void HtmlDocVisitor::operator()(const DocSecRefItem &ref)
 {
   if (m_hide) return;
-  if (!ref.file().isEmpty())
+  if (!ref.file().empty())
   {
     m_t << "<li>";
-    startLink(ref.ref(),ref.file(),ref.relPath(),ref.isSubPage() ? QCString() : ref.anchor());
+    startLink(ref.ref(),ref.file(),ref.relPath(),ref.isSubPage() ? DString() : ref.anchor());
   }
   visitChildren(ref);
-  if (!ref.file().isEmpty())
+  if (!ref.file().empty())
   {
     endLink();
     m_t << "</li>\n";
@@ -1975,8 +1974,8 @@ void HtmlDocVisitor::operator()(const DocParamSect &s)
 {
   if (m_hide) return;
   forceEndParagraph(s);
-  QCString className;
-  QCString heading;
+  DString className;
+  DString heading;
   switch(s.type())
   {
     case DocParamSect::Param:
@@ -2053,10 +2052,10 @@ void HtmlDocVisitor::operator()(const DocParamList &pl)
     m_t << "</td>";
   }
   m_t << "<td class=\"paramname\">";
-  bool first=TRUE;
+  bool first=true;
   for (const auto &param : pl.parameters())
   {
-    if (!first) m_t << ","; else first=FALSE;
+    if (!first) m_t << ","; else first=false;
     std::visit(*this,param);
   }
   m_t << "</td><td>";
@@ -2070,13 +2069,13 @@ void HtmlDocVisitor::operator()(const DocParamList &pl)
 void HtmlDocVisitor::operator()(const DocXRefItem &x)
 {
   if (m_hide) return;
-  if (x.title().isEmpty()) return;
+  if (x.title().empty()) return;
 
   forceEndParagraph(x);
   bool anonymousEnum = x.file()=="@";
   if (!anonymousEnum)
   {
-    QCString fn = x.file();
+    DString fn = x.file();
     addHtmlExtensionIfMissing(fn);
     m_t << "<dl class=\"" << x.key() << "\"><dt><b><a class=\"el\" href=\""
         << x.relPath() << fn
@@ -2090,7 +2089,7 @@ void HtmlDocVisitor::operator()(const DocXRefItem &x)
   if (!anonymousEnum) m_t << "</a>";
   m_t << "</b></dt><dd>";
   visitChildren(x);
-  if (x.title().isEmpty()) return;
+  if (x.title().empty()) return;
   m_t << "</dd></dl>\n";
   forceStartParagraph(x);
 }
@@ -2098,7 +2097,7 @@ void HtmlDocVisitor::operator()(const DocXRefItem &x)
 void HtmlDocVisitor::operator()(const DocInternalRef &ref)
 {
   if (m_hide) return;
-  startLink(QCString(),ref.file(),ref.relPath(),ref.anchor());
+  startLink(DString(),ref.file(),ref.relPath(),ref.anchor());
   visitChildren(ref);
   endLink();
   m_t << " ";
@@ -2125,7 +2124,7 @@ void HtmlDocVisitor::operator()(const DocVhdlFlow &vf)
   if (VhdlDocGen::getFlowMember()) // use VHDL flow chart creator
   {
     forceEndParagraph(vf);
-    QCString fname=FlowChart::convertNameToFileName();
+    DString fname=FlowChart::convertNameToFileName();
     m_t << "<p>";
     m_t << theTranslator->trFlowchart();
     m_t << " ";
@@ -2153,9 +2152,9 @@ void HtmlDocVisitor::operator()(const DocParBlock &pb)
   visitChildren(pb);
 }
 
-void HtmlDocVisitor::filter(const QCString &str, const bool retainNewline)
+void HtmlDocVisitor::filter(const DString &str, bool retainNewline, bool citeEntry)
 {
-  if (str.isEmpty()) return;
+  if (str.empty()) return;
   const char *p=str.data();
   while (*p)
   {
@@ -2165,7 +2164,14 @@ void HtmlDocVisitor::filter(const QCString &str, const bool retainNewline)
       case '\n': if(retainNewline) m_t << "<br/>"; m_t << c; break;
       case '<':  m_t << "&lt;"; break;
       case '>':  m_t << "&gt;"; break;
-      case '&':  m_t << "&amp;"; break;
+      case '&':  // possibility to have a special symbol
+        if (!citeEntry) {m_t << "&amp;"; break;}
+        p = HtmlEntityMapper::instance().writeHtmlEntity(
+            m_t,
+            p-1,
+            [](HtmlEntityMapper::SymType symType) { return HtmlEntityMapper::instance().html(symType); },
+            "&amp;");
+        break;
       case '\\':
         if ((*p == '(') || (*p == ')') || (*p == '[') || (*p == ']'))
           m_t << "\\&zwj;" << *p++;
@@ -2191,10 +2197,10 @@ void HtmlDocVisitor::filter(const QCString &str, const bool retainNewline)
 
 /// Escape basic entities to produce a valid CDATA attribute value,
 /// assume that the outer quoting will be using the double quote &quot;
-QCString HtmlDocVisitor::filterQuotedCdataAttr(const QCString &str)
+DString HtmlDocVisitor::filterQuotedCdataAttr(const DString &str)
 {
-  if (str.isEmpty()) return str;
-  QCString result;
+  if (str.empty()) return str;
+  DString result;
   result.reserve(str.length()+8);
   const char *p=str.data();
   while (*p)
@@ -2238,12 +2244,12 @@ QCString HtmlDocVisitor::filterQuotedCdataAttr(const QCString &str)
   return result;
 }
 
-void HtmlDocVisitor::startLink(const QCString &ref,const QCString &file,
-                               const QCString &relPath,const QCString &anchor,
-                               const QCString &tooltip)
+void HtmlDocVisitor::startLink(const DString &ref,const DString &file,
+                               const DString &relPath,const DString &anchor,
+                               const DString &tooltip)
 {
   //printf("HtmlDocVisitor: file=%s anchor=%s\n",qPrint(file),qPrint(anchor));
-  if (!ref.isEmpty()) // link to entity imported via tag file
+  if (!ref.empty()) // link to entity imported via tag file
   {
     m_t << "<a class=\"elRef\" ";
     m_t << externalLinkTarget();
@@ -2253,14 +2259,14 @@ void HtmlDocVisitor::startLink(const QCString &ref,const QCString &file,
     m_t << "<a class=\"el\" ";
   }
   m_t << "href=\"";
-  QCString fn = file;
+  DString fn = file;
   addHtmlExtensionIfMissing(fn);
-  m_t << createHtmlUrl(relPath,ref,true,
+  m_t << createHtmlUrl(relPath,ref,
                        m_fileName == Config_getString(HTML_OUTPUT)+"/"+fn,
                        fn,
                        anchor);
   m_t << "\"";
-  if (!tooltip.isEmpty()) m_t << " title=\"" << convertToHtml(tooltip) << "\"";
+  if (!tooltip.empty()) m_t << " title=\"" << convertToHtml(tooltip) << "\"";
   m_t << ">";
 }
 
@@ -2269,45 +2275,45 @@ void HtmlDocVisitor::endLink()
   m_t << "</a>";
 }
 
-void HtmlDocVisitor::writeDotFile(const QCString &fileName,const QCString &relPath,
-                                  const QCString &context,const QCString &srcFile,int srcLine,bool newFile)
+void HtmlDocVisitor::writeDotFile(const DString &fileName,const DString &relPath,
+                                  const DString &context,const DString &srcFile,int srcLine,bool newFile)
 {
-  QCString baseName=makeBaseName(fileName,".dot");
+  DString baseName=makeBaseName(fileName,".dot");
   baseName.prepend("dot_");
-  QCString outDir = Config_getString(HTML_OUTPUT);
+  DString outDir = Config_getString(HTML_OUTPUT);
   if (newFile) writeDotGraphFromFile(fileName,outDir,baseName,GraphOutputFormat::BITMAP,srcFile,srcLine,true);
   writeDotImageMapFromFile(m_t,fileName,outDir,relPath,baseName,context,-1,srcFile,srcLine,newFile);
 }
 
-void HtmlDocVisitor::writeMscFile(const QCString &fileName,const QCString &relPath,
-                                  const QCString &context,const QCString &srcFile,int srcLine, bool newFile)
+void HtmlDocVisitor::writeMscFile(const DString &fileName,const DString &relPath,
+                                  const DString &context,const DString &srcFile,int srcLine, bool newFile)
 {
-  QCString baseName=makeBaseName(fileName,".msc");
+  DString baseName=makeBaseName(fileName,".msc");
   baseName.prepend("msc_");
-  QCString outDir = Config_getString(HTML_OUTPUT);
-  QCString imgExt = getDotImageExtension();
+  DString outDir = Config_getString(HTML_OUTPUT);
+  DString imgExt = getDotImageExtension();
   MscOutputFormat mscFormat = imgExt=="svg" ? MscOutputFormat::SVG : MscOutputFormat::BITMAP;
   if (newFile) writeMscGraphFromFile(fileName,outDir,baseName,mscFormat,srcFile,srcLine,true);
   writeMscImageMapFromFile(m_t,fileName,outDir,relPath,baseName,context,mscFormat,srcFile,srcLine);
 }
 
-void HtmlDocVisitor::writeDiaFile(const QCString &fileName, const QCString &relPath,
-                                  const QCString &,const QCString &srcFile,int srcLine, bool newFile)
+void HtmlDocVisitor::writeDiaFile(const DString &fileName, const DString &relPath,
+                                  const DString &,const DString &srcFile,int srcLine, bool newFile)
 {
-  QCString baseName=makeBaseName(fileName,".dia");
+  DString baseName=makeBaseName(fileName,".dia");
   baseName.prepend("dia_");
-  QCString outDir = Config_getString(HTML_OUTPUT);
+  DString outDir = Config_getString(HTML_OUTPUT);
   if (newFile) writeDiaGraphFromFile(fileName,outDir,baseName,DiaOutputFormat::BITMAP,srcFile,srcLine,true);
 
   m_t << "<img src=\"" << relPath << baseName << ".png" << "\" />\n";
 }
 
-void HtmlDocVisitor::writePlantUMLFile(const QCString &fileName, const QCString &relPath,
-                                       const QCString &,const QCString &/* srcFile */,int /* srcLine */)
+void HtmlDocVisitor::writePlantUMLFile(const DString &fileName, const DString &relPath,
+                                       const DString &,const DString &/* srcFile */,int /* srcLine */)
 {
-  QCString baseName=makeBaseName(fileName,".pu");
-  QCString outDir = Config_getString(HTML_OUTPUT);
-  QCString imgExt = getDotImageExtension();
+  DString baseName=makeBaseName(fileName,".pu");
+  DString outDir = Config_getString(HTML_OUTPUT);
+  DString imgExt = getDotImageExtension();
   if (imgExt=="svg")
   {
     PlantumlManager::instance().generatePlantUMLOutput(fileName,outDir,PlantumlManager::PUML_SVG,true);
@@ -2323,8 +2329,8 @@ void HtmlDocVisitor::writePlantUMLFile(const QCString &fileName, const QCString 
   }
 }
 
-void HtmlDocVisitor::writeMermaidFile(const QCString &fileName, const QCString &relPath,
-                                      const QCString &,const QCString &/* srcFile */,int /* srcLine */)
+void HtmlDocVisitor::writeMermaidFile(const DString &fileName, const DString &relPath,
+                                      const DString &,const DString &/* srcFile */,int /* srcLine */)
 {
   auto baseName     = makeBaseName(fileName,".mmd");
   auto outDir       = Config_getString(HTML_OUTPUT);
@@ -2342,7 +2348,7 @@ void HtmlDocVisitor::writeMermaidFile(const QCString &fileName, const QCString &
   }
 }
 
-/** Returns TRUE if the child nodes in paragraph \a para until \a nodeIndex
+/** Returns true if the child nodes in paragraph \a para until \a nodeIndex
     contain a style change node that is still active and that style change is one that
     must be located outside of a paragraph, i.e. it is a center, div, or pre tag.
     See also bug746162.
@@ -2352,7 +2358,7 @@ static bool insideStyleChangeThatIsOutsideParagraph(const DocPara *para,
 {
   //printf("insideStyleChangeThatIsOutputParagraph(index=%d)\n",nodeIndex);
   int styleMask=0;
-  bool styleOutsideParagraph=FALSE;
+  bool styleOutsideParagraph=false;
   while (!styleOutsideParagraph)
   {
     const DocNodeVariant *n = &(*it);
@@ -2371,7 +2377,7 @@ static bool insideStyleChangeThatIsOutsideParagraph(const DocPara *para,
           paraStyle
          )
       {
-        styleOutsideParagraph=TRUE;
+        styleOutsideParagraph=true;
       }
     }
     if (it!=std::begin(para->children()))

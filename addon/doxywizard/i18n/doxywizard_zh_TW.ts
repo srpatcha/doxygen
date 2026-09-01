@@ -14,80 +14,8 @@
         <translation>錯誤</translation>
     </message>
     <message>
-        <source>Possible values are:</source>
-        <translation>可能的值有：</translation>
-    </message>
-    <message>
-        <source>and</source>
-        <translation>和</translation>
-    </message>
-    <message>
-        <source>The default value is: &lt;code&gt;%1&lt;/code&gt;.</source>
-        <translation>預設值為：&lt;code&gt;%1&lt;/code&gt;。</translation>
-    </message>
-    <message>
-        <source>Minimum value: %1, maximum value: %2, default value: %3.</source>
-        <translation>最小值：%1，最大值：%2，預設值：%3。</translation>
-    </message>
-    <message>
-        <source>The default value is: system dependent.</source>
-        <translation>預設值：取決於系統。</translation>
-    </message>
-    <message>
-        <source>The default directory is: &lt;code&gt;%1&lt;/code&gt;.</source>
-        <translation>預設目錄為：&lt;code&gt;%1&lt;/code&gt;。</translation>
-    </message>
-    <message>
-        <source>The default file is: &lt;code&gt;%1&lt;/code&gt;.</source>
-        <translation>預設檔案為：&lt;code&gt;%1&lt;/code&gt;。</translation>
-    </message>
-    <message>
-        <source>The default file (with absolute path) is: &lt;code&gt;%1&lt;/code&gt;.</source>
-        <translation>預設檔案（帶絕對路徑）為：&lt;code&gt;%1&lt;/code&gt;。</translation>
-    </message>
-    <message>
-        <source>The file has to be specified with full path.</source>
-        <translation>檔案必須使用完整路徑指定。</translation>
-    </message>
-    <message>
-        <source>The default image is: &lt;code&gt;%1&lt;/code&gt;.</source>
-        <translation>預設影像為：&lt;code&gt;%1&lt;/code&gt;。</translation>
-    </message>
-    <message>
-        <source>The default image (with absolute path) is: &lt;code&gt;%1&lt;/code&gt;.</source>
-        <translation>預設影像（帶絕對路徑）為：&lt;code&gt;%1&lt;/code&gt;。</translation>
-    </message>
-    <message>
-        <source>The image has to be specified with full path.</source>
-        <translation>影像必須使用完整路徑指定。</translation>
-    </message>
-    <message>
-        <source>This tag requires that the tag %1 is set to &lt;code&gt;YES&lt;/code&gt;.</source>
-        <translation>此標籤要求標籤 %1 設定為 &lt;code&gt;YES&lt;/code&gt;。</translation>
-    </message>
-    <message>
-        <source>Note:</source>
-        <translation>注意：</translation>
-    </message>
-    <message>
-        <source>See also:</source>
-        <translation>另請參閱：</translation>
-    </message>
-    <message>
-        <source>Doxygen usage</source>
-        <translation>Doxygen 用法</translation>
-    </message>
-    <message>
-        <source>External Indexing and Searching</source>
-        <translation>外部索引和搜尋</translation>
-    </message>
-    <message>
-        <source>Linking to external documentation</source>
-        <translation>連結到外部文件</translation>
-    </message>
-    <message>
-        <source>Including formulas</source>
-        <translation>包含公式</translation>
+        <source>Search settings...</source>
+        <translation>搜尋設定...</translation>
     </message>
 </context>
 <context>
@@ -372,6 +300,10 @@ Reason given: %2</source>
         <translation>Doxygen 圖形介面前端</translation>
     </message>
     <message>
+        <source>Hide documentation</source>
+        <translation>隱藏文檔</translation>
+    </message>
+    <message>
         <source>Switch language...</source>
         <translation>切換語言...</translation>
     </message>
@@ -621,6 +553,10 @@ Reason given: %2</source>
 <context>
     <name>Wizard</name>
     <message>
+        <source>Project</source>
+        <translation>專案</translation>
+    </message>
+    <message>
         <source>Mode</source>
         <translation>模式</translation>
     </message>
@@ -668,38 +604,6 @@ Reason given: %2</source>
         <translation>下一步</translation>
     </message>
     <message>
-        <source>Project</source>
-        <translation>專案</translation>
-    </message>
-    <message>
-        <source>Build</source>
-        <translation>建置</translation>
-    </message>
-    <message>
-        <source>Messages</source>
-        <translation>訊息</translation>
-    </message>
-    <message>
-        <source>Input</source>
-        <translation>輸入</translation>
-    </message>
-    <message>
-        <source>Source Browser</source>
-        <translation>原始碼瀏覽器</translation>
-    </message>
-    <message>
-        <source>Index</source>
-        <translation>索引</translation>
-    </message>
-    <message>
-        <source>Preprocessor</source>
-        <translation>前置處理器</translation>
-    </message>
-    <message>
-        <source>External</source>
-        <translation>外部引用</translation>
-    </message>
-    <message>
         <source>Topics</source>
         <translation>主題</translation>
     </message>
@@ -719,8 +623,8 @@ Reason given: %2</source>
         <translation>可用語言</translation>
     </message>
     <message>
-        <source>Select and Quit</source>
-        <translation>選擇並退出</translation>
+        <source>Select and Restart</source>
+        <translation>選擇並重啟</translation>
     </message>
 </context>
 

@@ -18,24 +18,25 @@
 
 #include <memory>
 
-#include "qcstring.h"
 #include "construct.h"
 
 class CodeParserInterface;
+class DString;
 
 /*! @brief Helper base class for functionality shared by all visitors
  */
 class DocVisitor
 {
-    struct Private;
-    std::unique_ptr<Private> m_p;
   public:
     DocVisitor();
     virtual ~DocVisitor();
     NON_COPYABLE(DocVisitor)
-    CodeParserInterface &getCodeParser(const QCString &langExt);
+    CodeParserInterface &getCodeParser(const DString &langExt);
     void pushHidden(bool hide);
     bool popHidden();
+  private:
+    struct Private;
+    std::unique_ptr<Private> m_p;
 };
 
 

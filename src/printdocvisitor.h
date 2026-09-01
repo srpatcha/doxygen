@@ -1,9 +1,6 @@
 /******************************************************************************
  *
- *
- *
- *
- * Copyright (C) 1997-2015 by Dimitri van Heesch.
+ * Copyright (C) 1997-2026 by Dimitri van Heesch.
  *
  * Permission to use, copy, modify, and distribute this software and its
  * documentation under the terms of the GNU General Public License is hereby
@@ -19,16 +16,16 @@
 #ifndef PRINTDOCVISITOR_H
 #define PRINTDOCVISITOR_H
 
-#include "htmlentity.h"
+#include "docnode.h"
 #include "emoji.h"
+#include "htmlentity.h"
 #include "message.h"
-#include "cite.h"
 
 /*! Visitor implementation for pretty printing */
 class PrintDocVisitor
 {
   public:
-    PrintDocVisitor() : m_indent(0), m_needsEnter(FALSE), m_insidePre(FALSE) {}
+    PrintDocVisitor() : m_indent(0), m_needsEnter(false), m_insidePre(false) {}
 
     //--------------------------------------
 
@@ -57,14 +54,14 @@ class PrintDocVisitor
     void operator()(const DocSymbol &s)
     {
       indent_leaf();
-      const char *res = HtmlEntityMapper::instance().utf8(s.symbol(),TRUE);
+      const char *res = HtmlEntityMapper::instance().utf8(s.symbol(),true);
       if (res)
       {
         printf("%s",res);
       }
       else
       {
-        printf("print: non supported HTML-entity found: %s\n",HtmlEntityMapper::instance().html(s.symbol(),TRUE));
+        printf("print: non supported HTML-entity found: %s\n",HtmlEntityMapper::instance().html(s.symbol(),true));
       }
     }
     void operator()(const DocEmoji &s)
@@ -257,8 +254,8 @@ class PrintDocVisitor
     {
       indent_leaf();
       auto opt = cite.option();
-      QCString txt;
-      if (!cite.file().isEmpty())
+      DString txt;
+      if (!cite.file().empty())
       {
         txt = cite.getText();
       }
@@ -354,25 +351,25 @@ class PrintDocVisitor
       printf("<simplesect type=");
       switch(s.type())
       {
-	case DocSimpleSect::See: printf("see"); break;
-	case DocSimpleSect::Return: printf("return"); break;
-	case DocSimpleSect::Author: printf("author"); break;
-	case DocSimpleSect::Authors: printf("authors"); break;
-	case DocSimpleSect::Version: printf("version"); break;
-	case DocSimpleSect::Since: printf("since"); break;
-	case DocSimpleSect::Date: printf("date"); break;
-	case DocSimpleSect::Note: printf("note"); break;
-	case DocSimpleSect::Warning: printf("warning"); break;
-	case DocSimpleSect::Pre: printf("pre"); break;
-	case DocSimpleSect::Post: printf("post"); break;
-	case DocSimpleSect::Copyright: printf("copyright"); break;
-	case DocSimpleSect::Invar: printf("invar"); break;
-	case DocSimpleSect::Remark: printf("remark"); break;
-	case DocSimpleSect::Attention: printf("attention"); break;
-	case DocSimpleSect::Important: printf("important"); break;
-	case DocSimpleSect::User: printf("user"); break;
-	case DocSimpleSect::Rcs: printf("rcs"); break;
-	case DocSimpleSect::Unknown: printf("unknown"); break;
+        case DocSimpleSect::See: printf("see"); break;
+        case DocSimpleSect::Return: printf("return"); break;
+        case DocSimpleSect::Author: printf("author"); break;
+        case DocSimpleSect::Authors: printf("authors"); break;
+        case DocSimpleSect::Version: printf("version"); break;
+        case DocSimpleSect::Since: printf("since"); break;
+        case DocSimpleSect::Date: printf("date"); break;
+        case DocSimpleSect::Note: printf("note"); break;
+        case DocSimpleSect::Warning: printf("warning"); break;
+        case DocSimpleSect::Pre: printf("pre"); break;
+        case DocSimpleSect::Post: printf("post"); break;
+        case DocSimpleSect::Copyright: printf("copyright"); break;
+        case DocSimpleSect::Invar: printf("invar"); break;
+        case DocSimpleSect::Remark: printf("remark"); break;
+        case DocSimpleSect::Attention: printf("attention"); break;
+        case DocSimpleSect::Important: printf("important"); break;
+        case DocSimpleSect::User: printf("user"); break;
+        case DocSimpleSect::Rcs: printf("rcs"); break;
+        case DocSimpleSect::Unknown: printf("unknown"); break;
       }
       printf(">\n");
       if (s.title())
@@ -697,11 +694,11 @@ class PrintDocVisitor
       printf("<paramsect type=");
       switch (ps.type())
       {
-	case DocParamSect::Param: printf("param"); break;
-	case DocParamSect::RetVal: printf("retval"); break;
-	case DocParamSect::Exception: printf("exception"); break;
-	case DocParamSect::TemplateParam: printf("templateparam"); break;
-	case DocParamSect::Unknown: printf("unknown"); break;
+        case DocParamSect::Param: printf("param"); break;
+        case DocParamSect::RetVal: printf("retval"); break;
+        case DocParamSect::Exception: printf("exception"); break;
+        case DocParamSect::TemplateParam: printf("templateparam"); break;
+        case DocParamSect::Unknown: printf("unknown"); break;
       }
       printf(">\n");
       visitChildren(ps);
@@ -764,12 +761,12 @@ class PrintDocVisitor
     {
       if (m_needsEnter) printf("\n");
       for (int i=0;i<m_indent;i++) printf(".");
-      m_needsEnter=FALSE;
+      m_needsEnter=false;
     }
     void indent_leaf()
     {
       if (!m_needsEnter) indent();
-      m_needsEnter=TRUE;
+      m_needsEnter=true;
     }
     void indent_pre()
     {

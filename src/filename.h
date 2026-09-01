@@ -19,6 +19,7 @@
 #include <memory>
 #include <vector>
 
+#include "dstring.h"
 #include "linkedmap.h"
 #include "utf8.h"
 #include "util.h"
@@ -26,18 +27,14 @@
 class FileDef;
 
 /** Class representing all files with a certain base name */
-class FileName : public std::vector< std::unique_ptr<FileDef> >
+class FileName final : public std::vector< std::unique_ptr<FileDef> >
 {
   public:
-    FileName(const QCString &nm,const QCString &fn) : m_name(nm), m_fName(fn), m_pathName("tmp") {}
-    QCString fileName() const { return m_name; }
-    QCString fullName() const { return m_fName; }
-    QCString path() const { return m_pathName; }
+    explicit FileName(const DString &nm) : m_name(nm) {}
+    DString fileName() const { return m_name; }
 
   private:
-    QCString m_name;
-    QCString m_fName;
-    QCString m_pathName;
+    DString m_name;
 };
 
 //! Custom combined key compare and hash functor that uses a lower case string in
@@ -59,7 +56,7 @@ class FileNameFn
     std::string searchKey(const std::string &input) const
     {
       std::string key = input;
-      if (!getCaseSenseNames())
+      if (!useCaseSenseNames())
       {
         key = convertUTF8ToLower(key);
       }
@@ -68,9 +65,21 @@ class FileNameFn
 };
 
 /** Ordered dictionary of FileName objects. */
-class FileNameLinkedMap : public LinkedMap<FileName,FileNameFn,FileNameFn,
+class FileNameLinkedMap final : public LinkedMap<FileName,FileNameFn,FileNameFn,
                                            std::unordered_multimap<std::string,FileName*,FileNameFn,FileNameFn> >
 {
+  public:
+    /** Returns the file definition in \a fnMap that matches the file name \a n.
+     *  If there are multiple matches, ambig is set to true and the first match is returned.
+     *  If there are no matches, ambig is set to false and nullptr is returned.
+     */
+    FileDef *findFileDef(const DString &n,bool &ambig) const;
+
+    /** Returns a list of file definitions in \a fnMap that match the file name \a n.
+     *  The list is returned as a string with each file definition separated by a newline character.
+     *  Used for error messages.
+     */
+    DString showFileDefMatches(const DString &n) const;
 };
 
 #endif

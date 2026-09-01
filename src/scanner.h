@@ -1,8 +1,6 @@
 /******************************************************************************
  *
- *
- *
- * Copyright (C) 1997-2015 by Dimitri van Heesch.
+ * Copyright (C) 1997-2026 by Dimitri van Heesch.
  *
  * Permission to use, copy, modify, and distribute this software and its
  * documentation under the terms of the GNU General Public License is hereby
@@ -26,7 +24,7 @@
  *  supports C++ and various languages that are closely related to C++,
  *  such as C, C#, Objective-C, Java, PHP, and IDL.
  */
-class COutlineParser : public OutlineParserInterface
+class COutlineParser final : public OutlineParserInterface
 {
   public:
     COutlineParser();
@@ -35,12 +33,12 @@ class COutlineParser : public OutlineParserInterface
     COutlineParser(COutlineParser &&) = delete;
     COutlineParser &operator=(COutlineParser &&) = delete;
    ~COutlineParser() override;
-    void parseInput(const QCString &fileName,
+    void parseInput(const DString &fileName,
                     const char *fileBuf,
                     const std::shared_ptr<Entry> &root,
                     ClangTUParser *clangParser) override;
-    bool needsPreprocessing(const QCString &extension) const override;
-    void parsePrototype(const QCString &text) override;
+    bool needsPreprocessing(const DString &extension) const override;
+    void parsePrototype(const DString &text) override;
   private:
     struct Private;
     std::unique_ptr<Private> p;

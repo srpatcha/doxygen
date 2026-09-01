@@ -15,10 +15,16 @@
 
 #define NOMINMAX
 #define WIN32_LEAN_AND_MEAN
-#include "filesystem.hpp"
+
+// own header
 #include "dir.h"
 
+// standard includes
 #include <utility>
+
+// other includes
+#include "fileinfo.h"
+#include "filesystem.hpp"
 
 namespace fs = ghc::filesystem;
 
@@ -260,7 +266,7 @@ bool Dir::exists() const
   return fi.exists() && fi.isDir();
 }
 
-bool Dir::isEmpty(const std::string &subdir) const
+bool Dir::empty(const std::string &subdir) const
 {
   fs::path pth = path();
   pth /= subdir;
@@ -329,7 +335,7 @@ bool Dir::rename(const std::string &orgName,const std::string &newName,bool acce
 
 bool Dir::copy(const std::string &srcName,const std::string &dstName,bool acceptsAbsPath) const
 {
-  const auto copyOptions = fs::copy_options::overwrite_existing;
+  const auto &copyOptions = fs::copy_options::overwrite_existing;
   std::error_code ec, ec_perm;
   std::string sn = filePath(srcName,acceptsAbsPath);
   std::string dn = filePath(dstName,acceptsAbsPath);

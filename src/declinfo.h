@@ -1,8 +1,6 @@
 /******************************************************************************
  *
- *
- *
- * Copyright (C) 1997-2015 by Dimitri van Heesch.
+ * Copyright (C) 1997-2026 by Dimitri van Heesch.
  *
  * Permission to use, copy, modify, and distribute this software and its
  * documentation under the terms of the GNU General Public License is hereby
@@ -19,16 +17,18 @@
 #define DECLINFO_H
 
 #include <stdio.h>
-#include "qcstring.h"
+
 #include "types.h"
 
-extern void parseFuncDecl(const QCString &decl,
+class DString;
+
+extern void parseFuncDecl(const DString &decl,
                           const SrcLangExt lang,
-                          QCString &clName,
-                          QCString &type,
-                          QCString &name,
-                          QCString &args,
-                          QCString &funcTempList,
-                          QCString &exceptions
+                          DString &clName,
+                          DString &type,
+                          DString &name,
+                          DString &args,
+                          DString &funcTempList,
+                          DString &exceptions
                          );
 #endif

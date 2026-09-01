@@ -1,8 +1,6 @@
 /******************************************************************************
  *
- *
- *
- * Copyright (C) 1997-2015 by Dimitri van Heesch.
+ * Copyright (C) 1997-2026 by Dimitri van Heesch.
  *
  * Permission to use, copy, modify, and distribute this software and its
  * documentation under the terms of the GNU General Public License is hereby
@@ -16,12 +14,12 @@
  */
 
 //
-//	Update:
+// Update:
 //
 // 2004.12.22 (SooYoung Jung: jung5000@gmail.com)
-//	- LaTex and RTF were not generated correctly.
-// 	  Corrected trRTFansicp and trRTFCharSet.
-// 	  It was wrong.
+// - LaTex and RTF were not generated correctly.
+//   Corrected trRTFansicp and trRTFCharSet.
+//   It was wrong.
 //
 //
 
@@ -31,17 +29,17 @@
 class TranslatorKoreanEn : public TranslatorEnglish
 {
   public:
-    QCString idLanguage() override
+    DString idLanguage() override
     { return "korean-en"; }
-    QCString latexLanguageSupportCommand() override
+    DString latexLanguageSupportCommand() override
     {
       return "\\usepackage{kotex}\n";
     }
-    QCString trRTFansicp() override
+    DString trRTFansicp() override
     {
       return "949";
     }
-    QCString latexCommandName() override
+    DString latexCommandName() override
     {
       return p_latexCommandName("xelatex");
     }
@@ -49,16 +47,16 @@ class TranslatorKoreanEn : public TranslatorEnglish
     /*! Used as ansicpg for RTF fcharset
      *  \see trRTFansicp() for a table of possible values.
      */
-    QCString trRTFCharSet() override
+    DString trRTFCharSet() override
     {
       return "129";
     }
 
-    QCString trISOLang() override
+    DString trISOLang() override
     {
       return "ko";
     }
-    QCString getLanguageString() override
+    DString getLanguageString() override
     {
       return "0x412 Korean";
     }

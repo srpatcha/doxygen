@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 1997-2020 by Dimitri van Heesch.
+ * Copyright (C) 1997-2026 by Dimitri van Heesch.
  *
  * Permission to use, copy, modify, and distribute this software and its
  * documentation under the terms of the GNU General Public License is hereby
@@ -16,14 +16,14 @@
 #ifndef CONTAINERS_H
 #define CONTAINERS_H
 
-#include <vector>
+#include <map>
+#include <set>
+#include <stack>
 #include <string>
 #include <string_view>
-#include <set>
-#include <map>
-#include <unordered_set>
 #include <unordered_map>
-#include <stack>
+#include <unordered_set>
+#include <vector>
 
 using StringUnorderedMap = std::unordered_map<std::string,std::string>;
 using StringUnorderedSet = std::unordered_set<std::string>;
@@ -36,5 +36,6 @@ using BoolStack          = std::stack<bool>;
 using BoolVector         = std::vector<bool>;
 using IntMap             = std::map<std::string,int>;
 using IntVector          = std::vector<int>;
+using SizeVector         = std::vector<size_t>;
 
 #endif

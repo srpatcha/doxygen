@@ -15,11 +15,13 @@
 #ifndef HTMLENTITY_H
 #define HTMLENTITY_H
 
-#include <unordered_map>
+#include <functional>
 #include <string>
+#include <unordered_map>
 
-#include "qcstring.h"
+#include "dstring.h"
 #include "construct.h"
+#include "message.h"
 
 class TextStream;
 
@@ -94,9 +96,9 @@ class HtmlEntityMapper
                     Perl_cedilla, Perl_ring
                   };
     static HtmlEntityMapper &instance();
-    SymType name2sym(const QCString &symName) const;
-    const char *utf8(SymType symb,bool useInPrintf=FALSE) const;
-    const char *html(SymType symb,bool useInPrintf=FALSE) const;
+    SymType name2sym(const DString &symName) const;
+    const char *utf8(SymType symb,bool useInPrintf=false) const;
+    const char *html(SymType symb,bool useInPrintf=false) const;
     const char *xml(SymType symb) const;
     const char *docbook(SymType symb) const;
     const char *latex(SymType symb) const;
@@ -109,6 +111,43 @@ class HtmlEntityMapper
     };
     const PerlSymb *perl(SymType symb) const;
     void  writeXMLSchema(TextStream &t);
+    DString convertCharEntitiesToUTF8(const DString &s) const;
+
+    using HtmlEntityMapperFunc = std::function<DString(SymType)>;
+
+    /*! Writes an HTML entity for the current symbol and advances the input pointer.
+     *  \tparam T Type of the output sink used to write encoded output.
+     *  \param result Output target receiving the encoded entity or fallback text.
+     *  \param s Pointer to the start of a potential HTML entity in the input text.
+     *  \param mapper Callback that maps a entity symbol type to its HTML entity string.
+     *  \param fallback Fallback string written when no entity mapping is available.
+     *  \return Pointer to the position after the processed HTML entity in the input text.
+     */
+    template<class T>
+    const char *writeHtmlEntity(T &result, const char *s, HtmlEntityMapperFunc &&mapper, const char *fallback)
+    {
+      ASSERT(s!=nullptr);
+      ASSERT(s[0]=='&');
+      const char *q = s+1;
+      size_t cnt = 2; // we have to count & and ; as well
+      while ((*q >= 'a' && *q <= 'z') || (*q >= 'A' && *q <= 'Z') || (*q >= '0' && *q <= '9'))
+      {
+        cnt++;
+        q++;
+      }
+      if (*q == ';') // valid entity name
+      {
+        SymType res = name2sym(DString(s).left(cnt));
+        if (res!=Sym_Unknown)
+        {
+          result += mapper(res);
+          return q+1;
+        }
+      }
+      result += fallback;
+      return s+1;
+    }
+
   private:
     void  validate();
     HtmlEntityMapper();

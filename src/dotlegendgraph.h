@@ -17,17 +17,18 @@
 #define DOTLEGENDGRAPH_H
 
 #include "dotgraph.h"
+#include "dstring.h"
 
 /** Representation of a legend explaining the meaning of boxes, arrows, and colors */
-class DotLegendGraph : public DotGraph
+class DotLegendGraph final : public DotGraph
 {
   public:
-    void writeGraph(const QCString &path);
+    void writeGraph(const DString &path);
 
   private:
-    QCString getBaseName() const override;
+    DString getBaseName() const override;
     void computeTheGraph() override;
-    QCString getMapLabel() const override;
+    DString getMapLabel() const override;
 
 };
 

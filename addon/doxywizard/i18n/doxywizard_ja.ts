@@ -14,80 +14,8 @@
         <translation>エラー</translation>
     </message>
     <message>
-        <source>Possible values are:</source>
-        <translation>可能な値は:</translation>
-    </message>
-    <message>
-        <source>and</source>
-        <translation>と</translation>
-    </message>
-    <message>
-        <source>The default value is: &lt;code&gt;%1&lt;/code&gt;.</source>
-        <translation>デフォルト値は &lt;code&gt;%1&lt;/code&gt; です。</translation>
-    </message>
-    <message>
-        <source>Minimum value: %1, maximum value: %2, default value: %3.</source>
-        <translation>最小値: %1, 最大値: %2, デフォルト値: %3。</translation>
-    </message>
-    <message>
-        <source>The default value is: system dependent.</source>
-        <translation>デフォルト値はシステム依存です。</translation>
-    </message>
-    <message>
-        <source>The default directory is: &lt;code&gt;%1&lt;/code&gt;.</source>
-        <translation>デフォルトのディレクトリは &lt;code&gt;%1&lt;/code&gt; です。</translation>
-    </message>
-    <message>
-        <source>The default file is: &lt;code&gt;%1&lt;/code&gt;.</source>
-        <translation>デフォルトのファイルは &lt;code&gt;%1&lt;/code&gt; です。</translation>
-    </message>
-    <message>
-        <source>The default file (with absolute path) is: &lt;code&gt;%1&lt;/code&gt;.</source>
-        <translation>デフォルトのファイル（絶対パス）は &lt;code&gt;%1&lt;/code&gt; です。</translation>
-    </message>
-    <message>
-        <source>The file has to be specified with full path.</source>
-        <translation>ファイルは完全パスで指定する必要があります。</translation>
-    </message>
-    <message>
-        <source>The default image is: &lt;code&gt;%1&lt;/code&gt;.</source>
-        <translation>デフォルトの画像は &lt;code&gt;%1&lt;/code&gt; です。</translation>
-    </message>
-    <message>
-        <source>The default image (with absolute path) is: &lt;code&gt;%1&lt;/code&gt;.</source>
-        <translation>デフォルトの画像（絶対パス）は &lt;code&gt;%1&lt;/code&gt; です。</translation>
-    </message>
-    <message>
-        <source>The image has to be specified with full path.</source>
-        <translation>画像は完全パスで指定する必要があります。</translation>
-    </message>
-    <message>
-        <source>This tag requires that the tag %1 is set to &lt;code&gt;YES&lt;/code&gt;.</source>
-        <translation>このタグはタグ %1 を &lt;code&gt;YES&lt;/code&gt; に設定する必要があります。</translation>
-    </message>
-    <message>
-        <source>Note:</source>
-        <translation>注:</translation>
-    </message>
-    <message>
-        <source>See also:</source>
-        <translation>参照:</translation>
-    </message>
-    <message>
-        <source>Doxygen usage</source>
-        <translation>Doxygenの使用方法</translation>
-    </message>
-    <message>
-        <source>External Indexing and Searching</source>
-        <translation>外部インデックス作成と検索</translation>
-    </message>
-    <message>
-        <source>Linking to external documentation</source>
-        <translation>外部ドキュメントへのリンク</translation>
-    </message>
-    <message>
-        <source>Including formulas</source>
-        <translation>数式の含め方</translation>
+        <source>Search settings...</source>
+        <translation>設定を検索...</translation>
     </message>
 </context>
 <context>
@@ -372,6 +300,10 @@ Reason given: %2</source>
         <translation>Doxygen GUIフロントエンド</translation>
     </message>
     <message>
+        <source>Hide documentation</source>
+        <translation>ドキュメントを非表示にする</translation>
+    </message>
+    <message>
         <source>Switch language...</source>
         <translation>言語を切り替える...</translation>
     </message>
@@ -621,6 +553,10 @@ Reason given: %2</source>
 <context>
     <name>Wizard</name>
     <message>
+        <source>Project</source>
+        <translation>プロジェクト</translation>
+    </message>
+    <message>
         <source>Mode</source>
         <translation>モード</translation>
     </message>
@@ -668,38 +604,6 @@ Reason given: %2</source>
         <translation>次へ</translation>
     </message>
     <message>
-        <source>Project</source>
-        <translation>プロジェクト</translation>
-    </message>
-    <message>
-        <source>Build</source>
-        <translation>ビルド</translation>
-    </message>
-    <message>
-        <source>Messages</source>
-        <translation>メッセージ</translation>
-    </message>
-    <message>
-        <source>Input</source>
-        <translation>入力</translation>
-    </message>
-    <message>
-        <source>Source Browser</source>
-        <translation>ソースブラウザ</translation>
-    </message>
-    <message>
-        <source>Index</source>
-        <translation>インデックス</translation>
-    </message>
-    <message>
-        <source>Preprocessor</source>
-        <translation>プリプロセッサ</translation>
-    </message>
-    <message>
-        <source>External</source>
-        <translation>外部参照</translation>
-    </message>
-    <message>
         <source>Topics</source>
         <translation>トピック</translation>
     </message>
@@ -719,8 +623,8 @@ Reason given: %2</source>
         <translation>利用可能な言語</translation>
     </message>
     <message>
-        <source>Select and Quit</source>
-        <translation>選択して終了</translation>
+        <source>Select and Restart</source>
+        <translation>選択して再起動</translation>
     </message>
 </context>
 

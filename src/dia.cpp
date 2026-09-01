@@ -13,23 +13,24 @@
  *
  */
 
+// own header
 #include "dia.h"
-#include "portable.h"
-#include "config.h"
-#include "message.h"
-#include "util.h"
-#include "dir.h"
-#include "indexlist.h"
-#include "doxygen.h"
 
+// other headers
+#include "config.h"
+#include "dir.h"
+#include "doxygen.h"
+#include "indexlist.h"
+#include "message.h"
+#include "portable.h"
 
 static const int maxCmdLine = 40960;
 
-void writeDiaGraphFromFile(const QCString &inFile,const QCString &outDir,
-                           const QCString &outFile,DiaOutputFormat format,
-                           const QCString &srcFile,int srcLine,bool toIndex)
+void writeDiaGraphFromFile(const DString &inFile,const DString &outDir,
+                           const DString &outFile,DiaOutputFormat format,
+                           const DString &srcFile,int srcLine,bool toIndex)
 {
-  QCString absOutFile = outDir;
+  DString absOutFile = outDir;
   absOutFile+=Portable::pathSeparator();
   absOutFile+=outFile;
 
@@ -38,9 +39,9 @@ void writeDiaGraphFromFile(const QCString &inFile,const QCString &outDir,
   // go to the html output directory (i.e. path)
   Dir::setCurrent(outDir.str());
   //printf("Going to dir %s\n",Dir::currentDirPath().c_str());
-  QCString diaExe = Config_getString(DIA_PATH)+"dia"+Portable::commandExtension();
-  QCString diaArgs;
-  QCString extension;
+  DString diaExe = Config_getString(DIA_PATH)+"dia"+Portable::commandExtension();
+  DString diaArgs;
+  DString extension;
   diaArgs+="-n ";
   if (format==DiaOutputFormat::BITMAP)
   {
@@ -62,7 +63,7 @@ void writeDiaGraphFromFile(const QCString &inFile,const QCString &outDir,
   diaArgs+="\"";
 
   //printf("*** running: %s %s outDir:%s %s\n",qPrint(diaExe),qPrint(diaArgs),outDir,outFile);
-  if (Portable::system(diaExe,diaArgs,FALSE)!=0)
+  if (Portable::system(diaExe,diaArgs,false)!=0)
   {
     err_full(srcFile,srcLine,"Problems running {}. Check your installation or look typos in you dia file {}",
         diaExe,inFile);
@@ -70,7 +71,7 @@ void writeDiaGraphFromFile(const QCString &inFile,const QCString &outDir,
   }
   if ( (format==DiaOutputFormat::EPS) && (Config_getBool(USE_PDFLATEX)) )
   {
-    QCString epstopdfArgs(maxCmdLine, QCString::ExplicitSize);
+    DString epstopdfArgs(maxCmdLine, DString::ExplicitSize);
     epstopdfArgs.sprintf("\"%s.eps\" --outfile=\"%s.pdf\"",
                          qPrint(outFile),qPrint(outFile));
     if (Portable::system("epstopdf",epstopdfArgs)!=0)

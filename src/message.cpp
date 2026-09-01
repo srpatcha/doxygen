@@ -13,53 +13,50 @@
  *
  */
 
-#include <cstdio>
-#include <cstdlib>
-#include <mutex>
+// own header
+#include "message.h"
+
+// standard includes
 #include <atomic>
+#include <mutex>
 #include <unordered_set>
 
+// other includes
 #include "config.h"
 #include "debug.h"
-#include "portable.h"
-#include "message.h"
+#include "dir.h"
 #include "doxygen.h"
 #include "fileinfo.h"
-#include "dir.h"
-#include "md5.h"
+#include "md5hash.h"
+#include "portable.h"
 
 // globals
-static QCString        g_warnFormat;
-static QCString        g_warnLineFormat;
-static const char *    g_warningStr = "warning: ";
-static const char *    g_errorStr = "error: ";
-static FILE *          g_warnFile = stderr;
-static WARN_AS_ERROR_t g_warnBehavior = WARN_AS_ERROR_t::NO;
-static QCString        g_warnlogFile;
-static bool            g_warnlogTemp = false;
+static DString          g_warnFormat;
+static DString          g_warnLineFormat;
+static const char *     g_warningStr = "warning: ";
+static const char *     g_errorStr = "error: ";
+static FILE *           g_warnFile = stderr;
+static WARN_AS_ERROR_t  g_warnBehavior = WARN_AS_ERROR_t::NO;
+static DString          g_warnlogFile;
+static bool             g_warnlogTemp = false;
 static std::atomic_bool g_warnStat = false;
-static std::mutex      g_mutex;
+static std::mutex       g_mutex;
 static std::unordered_set<std::string> g_warnHash;
 
 //-----------------------------------------------------------------------------------------
 
-static bool checkWarnMessage(QCString result)
+static bool checkWarnMessage(std::string_view msg)
 {
-  uint8_t md5_sig[16];
-  char sigStr[33];
-  MD5Buffer(result.data(),result.length(),md5_sig);
-  MD5SigToString(md5_sig,sigStr);
-
-  return g_warnHash.insert(sigStr).second;
+  return g_warnHash.insert(md5str(msg).str()).second;
 }
 
-static void format_warn(const QCString &file,int line,const QCString &text)
+static void format_warn(const DString &file,int line,const DString &text)
 {
-  QCString fileSubst = file.isEmpty() ? "<unknown>" : file;
-  QCString lineSubst; lineSubst.setNum(line);
-  QCString versionSubst;
+  DString fileSubst = file.empty() ? "<unknown>" : file;
+  DString lineSubst; lineSubst.setNum(line);
+  DString versionSubst;
   // substitute markers by actual values
-  QCString msgText =
+  DString msgText =
       substitute(
         substitute(
           substitute(
@@ -82,7 +79,7 @@ static void format_warn(const QCString &file,int line,const QCString &text)
   {
     std::unique_lock<std::mutex> lock(g_mutex);
     // print resulting message
-    if (checkWarnMessage(msgText)) fwrite(msgText.data(),1,msgText.length(),g_warnFile);
+    if (checkWarnMessage(msgText.view())) fwrite(msgText.data(),1,msgText.length(),g_warnFile);
   }
   if (g_warnBehavior == WARN_AS_ERROR_t::YES)
   {
@@ -103,7 +100,7 @@ static void handle_warn_as_error()
   {
     {
       std::unique_lock<std::mutex> lock(g_mutex);
-      QCString msgText = " (warning treated as error, aborting now)\n";
+      DString msgText = " (warning treated as error, aborting now)\n";
       fwrite(msgText.data(),1,msgText.length(),g_warnFile);
       if (g_warnFile != stderr && !Config_getBool(QUIET))
       {
@@ -118,7 +115,7 @@ static void handle_warn_as_error()
 
 //-----------------------------------------------------------------------------------------
 
-static void do_warn(const QCString &file, int line, const char *prefix, fmt::string_view fmt, fmt::format_args args)
+static void do_warn(const DString &file, int line, const char *prefix, fmt::string_view fmt, fmt::format_args args)
 {
   format_warn(file,line,prefix+fmt::vformat(fmt,args));
   handle_warn_as_error();
@@ -141,7 +138,7 @@ void msg_(fmt::string_view fmt, fmt::format_args args)
 
 //-----------------------------------------------------------------------------------------
 
-void warn_(WarningType type, const QCString &file, int line, fmt::string_view fmt, fmt::format_args args)
+void warn_(WarningType type, const DString &file, int line, fmt::string_view fmt, fmt::format_args args)
 {
   bool enabled = false;
   switch (type)
@@ -182,7 +179,7 @@ void err_(fmt::string_view fmt, fmt::format_args args)
 
 //-----------------------------------------------------------------------------------------
 
-void err_full_(const QCString &file, int line, fmt::string_view fmt, fmt::format_args args)
+void err_full_(const DString &file, int line, fmt::string_view fmt, fmt::format_args args)
 {
   format_warn(file,line,g_errorStr+fmt::vformat(fmt,args));
 }
@@ -211,10 +208,10 @@ void term_(fmt::string_view fmt, fmt::format_args args)
 
 //-----------------------------------------------------------------------------------------
 
-QCString warn_line(const QCString &file,int line)
+DString warn_line(const DString &file,int line)
 {
-  QCString fileSubst = file.isEmpty() ? "<unknown>" : file;
-  QCString lineSubst; lineSubst.setNum(line);
+  DString fileSubst = file.empty() ? "<unknown>" : file;
+  DString lineSubst; lineSubst.setNum(line);
   return  substitute(
             substitute(
               g_warnLineFormat,
@@ -239,14 +236,14 @@ void initWarningFormat()
   g_warnLineFormat = Config_getString(WARN_LINE_FORMAT);
   g_warnBehavior   = Config_getEnum(WARN_AS_ERROR);
   g_warnlogFile    = Config_getString(WARN_LOGFILE);
-  if (g_warnlogFile.isEmpty() && g_warnBehavior == WARN_AS_ERROR_t::FAIL_ON_WARNINGS_PRINT)
+  if (g_warnlogFile.empty() && g_warnBehavior == WARN_AS_ERROR_t::FAIL_ON_WARNINGS_PRINT)
   {
     uint32_t pid = Portable::pid();
     g_warnlogFile.sprintf("doxygen_warnings_temp_%d.tmp",pid);
     g_warnlogTemp = true;
   }
 
-  if (!g_warnlogFile.isEmpty())
+  if (!g_warnlogFile.empty())
   {
     if (g_warnlogFile == "-")
     {

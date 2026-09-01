@@ -13,16 +13,15 @@
  *
  */
 
-#include <stdarg.h>
+#include "debug.h"
+
 #include <algorithm>
-#include <stdio.h>
+#include <chrono>
 #include <map>
 #include <string>
-#include <chrono>
 
-#include "debug.h"
+#include "dstring.h"
 #include "message.h"
-#include "qcstring.h"
 
 //------------------------------------------------------------------------
 
@@ -93,7 +92,7 @@ static char asciiToLower(char in) {
   return in;
 }
 
-static uint64_t labelToEnumValue(const QCString &l)
+static uint64_t labelToEnumValue(const DString &l)
 {
   std::string s = l.str();
   std::transform(s.begin(),s.end(),s.begin(),asciiToLower);
@@ -101,7 +100,7 @@ static uint64_t labelToEnumValue(const QCString &l)
   return (it!=s_labels.end()) ? it->second : Debug::DebugMask::Quiet;
 }
 
-bool Debug::setFlagStr(const QCString &lab)
+bool Debug::setFlagStr(const DString &lab)
 {
   uint64_t retVal = labelToEnumValue(lab);
   if (retVal == Debug::Stderr)

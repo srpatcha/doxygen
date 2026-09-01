@@ -17,8 +17,9 @@
 #define DEBUG_H
 
 #include <cstdint>
-#include "qcstring.h"
+
 #include "construct.h"
+#include "dstring.h"
 #include "message.h"
 
 /** Class containing a print function for diagnostics. */
@@ -79,7 +80,7 @@ class Debug
       print_(mask,prio,fmt,fmt::make_format_args(args...));
     }
 
-    static bool setFlagStr(const QCString &label);
+    static bool setFlagStr(const DString &label);
     static void setFlag(const DebugMask mask);
     static void clearFlag(const DebugMask mask);
     static bool isFlagSet(const DebugMask mask);
@@ -104,8 +105,8 @@ class DebugLex
   private:
 
     Debug::DebugMask m_mask;
-    QCString m_lexName;
-    QCString m_fileName;
+    DString m_lexName;
+    DString m_fileName;
 };
 
 

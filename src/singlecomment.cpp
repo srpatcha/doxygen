@@ -13,18 +13,19 @@
  *
  */
 
-#include <cstdio>
-
+// own includes
 #include "singlecomment.h"
-#include "docnode.h"
-#include "htmldocvisitor.h"
-#include "commentscan.h"
+
+// other includes
 #include "commentcnv.h"
-#include "markdown.h"
+#include "commentscan.h"
+#include "docnode.h"
 #include "entry.h"
+#include "htmldocvisitor.h"
+#include "markdown.h"
 #include "outputlist.h"
 
-static void generateHtmlOutput(const QCString &fileName,const QCString &doc)
+static void generateHtmlOutput(const DString &fileName,const DString &doc)
 {
   //printf("------\n%s\n------\n",qPrint(doc));
   auto parser { createDocParser() };
@@ -53,7 +54,7 @@ static void generateHtmlOutput(const QCString &fileName,const QCString &doc)
 
 void generateHtmlForComment(const std::string &fn,const std::string &text)
 {
-  QCString fileName = "index.html";
+  DString fileName = "index.html";
   std::shared_ptr<Entry> root = std::make_shared<Entry>();
 
   // 1. Pass input through commentcnv
@@ -70,7 +71,7 @@ void generateHtmlForComment(const std::string &fn,const std::string &text)
   bool needsEntry=false;
   GuardedSectionStack guards;
   Markdown markdown(fileName,1,0);
-  QCString processedDocs = markdown.process(convBuf.data(),lineNr,true);
+  DString processedDocs = markdown.process(convBuf.data(),lineNr,true);
   std::shared_ptr<Entry> current = std::make_shared<Entry>();
   current->lang = SrcLangExt::Markdown;
   current->fileName = fn;
@@ -92,7 +93,7 @@ void generateHtmlForComment(const std::string &fn,const std::string &text)
   {
     if (needsEntry)
     {
-      QCString docFile = current->docFile;
+      DString docFile = current->docFile;
       root->moveToSubEntryAndRefresh(current);
       current->lang = SrcLangExt::Markdown;
       current->docFile = docFile;
@@ -105,11 +106,11 @@ void generateHtmlForComment(const std::string &fn,const std::string &text)
   // 3. Pass result through docparser
   for (const auto &child : root->children())
   {
-    if (!child->brief.isEmpty())
+    if (!child->brief.empty())
     {
       generateHtmlOutput(fn,child->brief);
     }
-    if (!child->doc.isEmpty())
+    if (!child->doc.empty())
     {
       generateHtmlOutput(fn,child->doc);
     }

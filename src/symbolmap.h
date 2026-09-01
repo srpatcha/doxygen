@@ -17,11 +17,10 @@
 #define SYMBOLMAP_H
 
 #include <algorithm>
-#include <unordered_map>
-#include <vector>
 #include <string>
+#include <unordered_map>
 #include <utility>
-#include <cassert>
+#include <vector>
 
 //! Class implementing a symbol map that maps symbol names to objects.
 //! Symbol names do not have to be unique.
@@ -38,7 +37,7 @@ class SymbolMap
     using const_iterator = typename Map::const_iterator;
 
     //! Add a symbol \a def into the map under key \a name
-    void add(const QCString &name,Ptr def)
+    void add(const DString &name,Ptr def)
     {
       auto it = m_map.find(name.str());
       if (it!=m_map.end())
@@ -52,7 +51,7 @@ class SymbolMap
     }
 
     //! Remove a symbol \a def from the map that was stored under key \a name
-    void remove(const QCString &name,Ptr def)
+    void remove(const DString &name,Ptr def)
     {
       auto it1 = m_map.find(name.str());
       if (it1!=m_map.end())
@@ -72,9 +71,9 @@ class SymbolMap
 
     //! Find the list of symbols stored under key \a name
     //! Returns a pair of iterators pointing to the start and end of the range of matching symbols
-    const VectorPtr &find(const QCString &name)
+    const VectorPtr &find(const DString &name)
     {
-      assert(m_noMatch.empty());
+      ASSERT(m_noMatch.empty());
       auto it = m_map.find(name.str());
       return it==m_map.end() ? m_noMatch : it->second;
     }

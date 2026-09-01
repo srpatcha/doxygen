@@ -18,8 +18,9 @@
 
 #include "definition.h"
 
-class PageLinkedRefMap;
 class OutputList;
+class PageLinkedRefMap;
+class TagInfo;
 
 /** @brief A model of a page symbol. */
 class PageDef : public DefinitionMutable, public Definition
@@ -28,14 +29,15 @@ class PageDef : public DefinitionMutable, public Definition
     ABSTRACT_BASE_CLASS(PageDef)
 
     // setters
-    virtual void setFileName(const QCString &name) = 0;
+    virtual void setFileName(const DString &name) = 0;
     virtual void setLocalToc(const LocalToc &tl) = 0;
     virtual void setShowLineNo(bool) = 0;
-    virtual void setTitle(const QCString &title) = 0;
+    virtual void setTitle(const DString &title) = 0;
 
     // getters
     virtual void findSectionsInDocumentation() = 0;
-    virtual QCString title() const = 0;
+    virtual DString title() const = 0;
+    virtual DString titleAsText() const = 0;
     virtual const GroupDef *getGroupDef() const = 0;
     virtual const PageLinkedRefMap &getSubPages() const = 0;
     virtual bool visibleInIndex() const = 0;
@@ -58,7 +60,23 @@ class PageDef : public DefinitionMutable, public Definition
 
 };
 
-std::unique_ptr<PageDef> createPageDef(const QCString &f,int l,const QCString &n,const QCString &d,const QCString &t);
+std::unique_ptr<PageDef> createPageDef(const DString &f,int l,const DString &n,const DString &d,const DString &t);
+
+// ----------------------
+
+[[maybe_unused]] PageDef *addRelatedPage(
+                        const DString &name,
+                        const DString &ptitle,
+                        const DString &doc,
+                        const DString &fileName,
+                        int docLine,
+                        int startLine,
+                        const RefItemVector &sli = RefItemVector(),
+                        GroupDef *gd=nullptr,
+                        const TagInfo *tagInfo=nullptr,
+                        bool xref=false,
+                        SrcLangExt lang=SrcLangExt::Unknown
+                       );
 
 // --- Cast functions
 
@@ -67,11 +85,11 @@ const PageDef      *toPageDef(const Definition *d);
 
 // ------------------
 
-class PageLinkedMap : public LinkedMap<PageDef>
+class PageLinkedMap final : public LinkedMap<PageDef>
 {
 };
 
-class PageLinkedRefMap : public LinkedRefMap<PageDef>
+class PageLinkedRefMap final : public LinkedRefMap<PageDef>
 {
 };
 

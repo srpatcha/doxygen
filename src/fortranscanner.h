@@ -1,7 +1,5 @@
 /******************************************************************************
  *
- *
- *
  * Copyright (C) 1997-2015 by Dimitri van Heesch.
  *
  * Permission to use, copy, modify, and distribute this software and its
@@ -30,30 +28,32 @@ class FortranOutlineParser : public OutlineParserInterface
     FortranOutlineParser(FortranFormat format=FortranFormat::Unknown);
    ~FortranOutlineParser() override;
     NON_COPYABLE(FortranOutlineParser)
-    void parseInput(const QCString &fileName,
+    void parseInput(const DString &fileName,
                     const char *fileBuf,
                     const std::shared_ptr<Entry> &root,
                     ClangTUParser *clangParser) override;
-    bool needsPreprocessing(const QCString &extension) const override;
-    void parsePrototype(const QCString &text) override;
+    bool needsPreprocessing(const DString &extension) const override;
+    void parsePrototype(const DString &text) override;
 
   private:
     struct Private;
     std::unique_ptr<Private> p;
 };
 
-class FortranOutlineParserFree : public FortranOutlineParser
+class FortranOutlineParserFree final : public FortranOutlineParser
 {
   public:
     FortranOutlineParserFree() : FortranOutlineParser(FortranFormat::Free) { }
 };
 
-class FortranOutlineParserFixed : public FortranOutlineParser
+class FortranOutlineParserFixed final : public FortranOutlineParser
 {
   public:
     FortranOutlineParserFixed() : FortranOutlineParser(FortranFormat::Fixed) { }
 };
 
 const char* prepassFixedForm(const char* contents, int *hasContLine, int fixedCommentAfter);
+bool recognizeFixedForm(const DString &contents, FortranFormat format);
+FortranFormat convertFileNameFortranParserCode(const DString &fn);
 
 #endif

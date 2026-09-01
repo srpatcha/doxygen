@@ -11,9 +11,13 @@
  * input used in their production; they are not affected by this license.
  */
 
+// own include
+#include "arguments.h"
+
+// standard includes
 #include <algorithm>
 
-#include "arguments.h"
+// other includes
 #include "util.h"
 
 /*! the argument list is documented if one of its
@@ -33,19 +37,19 @@ bool ArgumentList::hasTemplateDocumentation() const
 }
 
 /*! Sets the trailing return type for a method */
-void ArgumentList::setTrailingReturnType(const QCString &s)
+void ArgumentList::setTrailingReturnType(const DString &s)
 {
   m_trailingReturnType = s;
 }
 
-void ArgumentList::appendTrailingReturnType(const QCString &s)
+void ArgumentList::appendTrailingReturnType(const DString &s)
 {
   m_trailingReturnType += s;
 }
 
 void ArgumentList::finishTrailingReturnType()
 {
-  if (!m_trailingReturnType.isEmpty())
+  if (!m_trailingReturnType.empty())
   {
     m_trailingReturnType = " "+removeRedundantWhiteSpace(m_trailingReturnType);
   }

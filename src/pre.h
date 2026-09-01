@@ -1,8 +1,6 @@
 /******************************************************************************
  *
- *
- *
- * Copyright (C) 1997-2015 by Dimitri van Heesch.
+ * Copyright (C) 1997-2026 by Dimitri van Heesch.
  *
  * Permission to use, copy, modify, and distribute this software and its
  * documentation under the terms of the GNU General Public License is hereby
@@ -20,9 +18,10 @@
 
 #include <memory>
 #include <string>
+
 #include "construct.h"
 
-class QCString;
+class DString;
 
 class Preprocessor
 {
@@ -31,8 +30,8 @@ class Preprocessor
    ~Preprocessor();
     NON_COPYABLE(Preprocessor)
 
-    void processFile(const QCString &fileName,const std::string &input,std::string &output);
-    void addSearchDir(const QCString &dir);
+    void processFile(const DString &fileName,const std::string &input,std::string &output);
+    void addSearchDir(const DString &dir);
  private:
    struct Private;
    std::unique_ptr<Private> p;

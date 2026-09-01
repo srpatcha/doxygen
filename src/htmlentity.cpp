@@ -13,10 +13,15 @@
  *
  */
 
+// own header
+#include "htmlentity.h"
+
+// standard includes
 #include <vector>
 
-#include "htmlentity.h"
+// other includes
 #include "message.h"
+#include "regex.h"
 #include "textstream.h"
 
 //! @brief Structure defining all HTML4 entities, doxygen extensions and doxygen commands representing special symbols.
@@ -345,7 +350,7 @@ HtmlEntityMapper &HtmlEntityMapper::instance()
 /*! @brief Access routine to the UTF8 code of the HTML entity
  *
  * @param symb Code of the requested HTML entity
- * @param useInPrintf If TRUE the result will be escaped such that it can be
+ * @param useInPrintf If true the result will be escaped such that it can be
  *                    used in a printf string pattern
  * @return the UTF8 code of the HTML entity,
  *         in case the UTF code is unknown \c nullptr is returned.
@@ -365,7 +370,7 @@ const char *HtmlEntityMapper::utf8(HtmlEntityMapper::SymType symb,bool useInPrin
 /*! @brief Access routine to the html code of the HTML entity
  *
  * @param symb        Code of the requested HTML entity
- * @param useInPrintf If TRUE the result will be escaped such that it can be
+ * @param useInPrintf If true the result will be escaped such that it can be
  *                    used in a printf string pattern
  * @return the html representation of the HTML entity,
  *         in case the html code is unknown \c nullptr is returned.
@@ -455,7 +460,7 @@ const HtmlEntityMapper::PerlSymb *HtmlEntityMapper::perl(HtmlEntityMapper::SymTy
  * @return the code for the requested HTML entity name,
  *         in case the requested HTML item does not exist `HtmlEntityMapper::Sym_unknown` is returned.
  */
-HtmlEntityMapper::SymType HtmlEntityMapper::name2sym(const QCString &symName) const
+HtmlEntityMapper::SymType HtmlEntityMapper::name2sym(const DString &symName) const
 {
   auto it = m_name2sym.find(symName.str());
   return it!=m_name2sym.end() ? it->second : HtmlEntityMapper::Sym_Unknown;
@@ -465,8 +470,8 @@ void HtmlEntityMapper::writeXMLSchema(TextStream &t)
 {
   for (size_t i=0;i<g_htmlEntities.size();i++)
   {
-    QCString bareName = g_htmlEntities[i].xml;
-    if (!bareName.isEmpty() && bareName.at(0)=='<' && bareName.endsWith("/>"))
+    DString bareName = g_htmlEntities[i].xml;
+    if (!bareName.empty() && bareName.at(0)=='<' && bareName.endsWith("/>"))
     {
       bareName = bareName.mid(1,bareName.length()-3); // strip < and />
       t << "      <xsd:element name=\"" << bareName << "\" type=\"docEmptyType\" />\n";
@@ -489,3 +494,45 @@ void HtmlEntityMapper::validate()
     i++;
   }
 }
+
+DString HtmlEntityMapper::convertCharEntitiesToUTF8(const DString &str) const
+{
+  if (str.empty()) return DString();
+
+  std::string s = str.data();
+  static const reg::Ex re(R"(&\a\w*;)");
+  reg::Iterator it(s,re);
+  reg::Iterator end;
+
+  DString result;
+  result.reserve(str.length()+32);
+  size_t p=0, i=0, l=0;
+  for (; it!=end ; ++it)
+  {
+    const auto &match = *it;
+    p = match.position();
+    l = match.length();
+    if (p>i)
+    {
+      result+=s.substr(i,p-i);
+    }
+    DString entity(match.str());
+    SymType symType = name2sym(entity);
+    const char *code=nullptr;
+    if (symType!=Sym_Unknown && (code=utf8(symType)))
+    {
+      result+=code;
+    }
+    else
+    {
+      result+=entity;
+    }
+    i=p+l;
+  }
+  result+=s.substr(i);
+  //printf("convertCharEntitiesToUTF8(%s)->%s\n",qPrint(s),qPrint(result));
+  return result;
+}
+
+
+

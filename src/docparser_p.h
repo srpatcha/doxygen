@@ -21,25 +21,24 @@
  */
 
 #include <cassert>
-#include <stack>
-#include <iterator>
-#include <vector>
-#include <deque>
 #include <cstdint>
+#include <deque>
+#include <stack>
+#include <vector>
 
-#include "containers.h"
-#include "docparser.h"
-#include "docnode.h"
-#include "doctokenizer.h"
-#include "searchindex.h"
-#include "construct.h"
 #include "cmdmapper.h"
+#include "construct.h"
+#include "containers.h"
+#include "docnode.h"
+#include "docparser.h"
+
+class TokenInfo;
 
 using DefinitionStack = std::vector<const Definition *>;
 using DocNodeStack = std::stack<DocNodeVariant *>;
 
 template<typename T, typename Container = std::deque<T>>
-class IterableStack : public std::stack<T, Container>
+class IterableStack final : public std::stack<T, Container>
 {
     using std::stack<T, Container>::c;
 
@@ -59,7 +58,7 @@ using DocStyleChangeStack = IterableStack<const DocNodeVariant *>;
 struct DocParserContext
 {
   const Definition *scope = nullptr;
-  QCString context;
+  DString context;
   bool inSeeBlock = false;
   bool inCodeStyle = false;
   bool xmlComment = false;
@@ -68,8 +67,8 @@ struct DocParserContext
   DocStyleChangeStack styleStack;
   DocStyleChangeStack initialStyleStack;
   DefinitionStack copyStack;
-  QCString fileName;
-  QCString relPath;
+  DString fileName;
+  DString relPath;
 
   bool         hasParamCommand = false;
   bool         hasReturnCommand = false;
@@ -79,13 +78,13 @@ struct DocParserContext
   int          numParameters = 0;
   const MemberDef *  memberDef = nullptr;
   bool         isExample = false;
-  QCString     exampleName;
-  QCString     searchUrl;
-  QCString     prefix;
+  DString     exampleName;
+  DString     searchUrl;
+  DString     prefix;
   SrcLangExt   lang = SrcLangExt::Cpp;
 
-  QCString     includeFileName;
-  QCString     includeFileText;
+  DString     includeFileName;
+  DString     includeFileText;
   size_t       includeFileOffset = 0;
   size_t       includeFileLength = 0;
   int          includeFileLine;
@@ -98,7 +97,7 @@ struct DocParserContext
   bool     autolinkSupport = false;
 };
 
-class DocParser : public IDocParser
+class DocParser final : public IDocParser
 {
   public:
     class AutoSaveContext
@@ -111,44 +110,44 @@ class DocParser : public IDocParser
     };
     void handleImg(DocNodeVariant *parent,DocNodeList &children,const HtmlAttribList &tagHtmlAttribs);
     Token internalValidatingParseDoc(DocNodeVariant *parent,DocNodeList &children,
-                                      const QCString &doc);
-    QCString processCopyDoc(const char *data,size_t &len);
-    QCString findAndCopyImage(const QCString &fileName,DocImage::Type type, bool doWarn = true);
+                                      const DString &doc);
+    DString processCopyDoc(const char *data,size_t &len);
+    DString findAndCopyImage(const DString &fileName,DocImage::Type type, bool doWarn = true);
     void checkArgumentName();
     void checkRetvalName();
     void checkUnOrMultipleDocumentedParams();
-    bool findDocsForMemberOrCompound(const QCString &commandName,
-                                     QCString *pDoc,
-                                     QCString *pBrief,
+    bool findDocsForMemberOrCompound(const DString &commandName,
+                                     DString *pDoc,
+                                     DString *pBrief,
                                      const Definition **pDef);
     bool defaultHandleToken(DocNodeVariant *parent,Token &tok,
                             DocNodeList &children,bool
-                            handleWord=TRUE);
+                            handleWord=true);
     void errorHandleDefaultToken(DocNodeVariant *parent,Token tok,
-                                 DocNodeList &children,const QCString &txt);
+                                 DocNodeList &children,const DString &txt);
     void defaultHandleTitleAndSize(const CommandType cmd, DocNodeVariant *parent,
-                                   DocNodeList &children, QCString &width,QCString &height);
+                                   DocNodeList &children, DString &width,DString &height);
     Token handleStyleArgument(DocNodeVariant *parent,DocNodeList &children,
-                               const QCString &cmdName);
+                               const DString &cmdName);
     void handleStyleEnter(DocNodeVariant *parent,DocNodeList &children, DocStyleChange::Style s,
-                          const QCString &tagName,const HtmlAttribList *attribs);
+                          const DString &tagName,const HtmlAttribList *attribs);
     void handleStyleLeave(DocNodeVariant *parent,DocNodeList &children, DocStyleChange::Style s,
-                          const QCString &tagName);
-    void handlePendingStyleCommands(DocNodeVariant *parent,DocNodeList &children);
+                          const DString &tagName);
+    void handlePendingStyleCommands(DocNodeVariant *parent,DocNodeList &children, size_t numberOfElementsToClose = 0);
     void handleInitialStyleCommands(DocNodeVariant *parent,DocNodeList &children);
     Token handleAHref(DocNodeVariant *parent,DocNodeList &children,const HtmlAttribList &tagHtmlAttribs);
     void handleUnclosedStyleCommands();
-    void handleLinkedWord(DocNodeVariant *parent,DocNodeList &children,bool ignoreAutoLinkFlag=FALSE);
-    void handleParameterType(DocNodeVariant *parent,DocNodeList &children,const QCString &paramTypes);
+    void handleLinkedWord(DocNodeVariant *parent,DocNodeList &children,bool ignoreAutoLinkFlag=false,bool typeLinkOnly=false);
+    void handleParameterType(DocNodeVariant *parent,DocNodeList &children,const DString &paramTypes);
     void handleInternalRef(DocNodeVariant *parent,DocNodeList &children);
     void handleAnchor(DocNodeVariant *parent,DocNodeList &children);
     void handleCite(DocNodeVariant *parent,DocNodeList &children);
     void handlePrefix(DocNodeVariant *parent,DocNodeList &children);
     void handleImage(DocNodeVariant *parent, DocNodeList &children);
-    void handleRef(DocNodeVariant *parent, DocNodeList &children, char cmdChar, const QCString &cmdName);
-    void handleIFile(char cmdChar,const QCString &cmdName);
-    void handleILine(char cmdChar,const QCString &cmdName);
-    void readTextFileByName(const QCString &file,QCString &text);
+    void handleRef(DocNodeVariant *parent, DocNodeList &children, char cmdChar, const DString &cmdName);
+    void handleIFile(char cmdChar,const DString &cmdName);
+    void handleILine(char cmdChar,const DString &cmdName);
+    void readTextFileByName(const DString &file,DString &text);
     std::stack< DocParserContext > contextStack;
     DocParserContext               context;
     DocTokenizer                   tokenizer;
@@ -190,43 +189,43 @@ inline bool isPreformatted(const DocNodeVariant *n)
   return std::visit([](auto &&x)->decltype(auto) { return x.isPreformatted(); }, *n);
 }
 
-/*! Returns TRUE iff node n is a child of a preformatted node */
+/*! Returns true iff node n is a child of a preformatted node */
 inline bool insidePRE(const DocNodeVariant *n)
 {
   while (n)
   {
-    if (isPreformatted(n)) return TRUE;
+    if (isPreformatted(n)) return true;
     n=parent(n);
   }
-  return FALSE;
+  return false;
 }
 
-/*! Returns TRUE iff node n is a child of a html list item node */
+/*! Returns true iff node n is a child of a html list item node */
 inline bool insideLI(const DocNodeVariant *n)
 {
   while (n)
   {
-    if (std::holds_alternative<DocHtmlListItem>(*n)) return TRUE;
+    if (std::holds_alternative<DocHtmlListItem>(*n)) return true;
     n=parent(n);
   }
-  return FALSE;
+  return false;
 }
 
-/*! Returns TRUE iff node n is a child of a html list item node */
+/*! Returns true iff node n is a child of a html list item node */
 inline bool insideBlockQuote(const DocNodeVariant *n)
 {
   while (n)
   {
-    if (std::holds_alternative<DocHtmlBlockQuote>(*n)) return TRUE;
+    if (std::holds_alternative<DocHtmlBlockQuote>(*n)) return true;
     n=parent(n);
   }
-  return FALSE;
+  return false;
 }
 
 
 //---------------------------------------------------------------------------
 
-/*! Returns TRUE iff node n is a child of a unordered html list node */
+/*! Returns true iff node n is a child of a unordered html list node */
 inline bool insideUL(const DocNodeVariant *n)
 {
   while (n)
@@ -234,16 +233,16 @@ inline bool insideUL(const DocNodeVariant *n)
     if (std::holds_alternative<DocHtmlList>(*n) &&
         std::get<DocHtmlList>(*n).type()==DocHtmlList::Unordered)
     {
-      return TRUE;
+      return true;
     }
     n=parent(n);
   }
-  return FALSE;
+  return false;
 }
 
 //---------------------------------------------------------------------------
 
-/*! Returns TRUE iff node n is a child of a ordered html list node */
+/*! Returns true iff node n is a child of a ordered html list node */
 inline bool insideOL(const DocNodeVariant *n)
 {
   while (n)
@@ -251,11 +250,11 @@ inline bool insideOL(const DocNodeVariant *n)
     if (std::holds_alternative<DocHtmlList>(*n) &&
         std::get<DocHtmlList>(*n).type()==DocHtmlList::Ordered)
     {
-      return TRUE;
+      return true;
     }
     n=parent(n);
   }
-  return FALSE;
+  return false;
 }
 
 //---------------------------------------------------------------------------
@@ -264,10 +263,10 @@ inline bool insideTable(const DocNodeVariant *n)
 {
   while (n)
   {
-    if (std::holds_alternative<DocHtmlTable>(*n)) return TRUE;
+    if (std::holds_alternative<DocHtmlTable>(*n)) return true;
     n=parent(n);
   }
-  return FALSE;
+  return false;
 }
 
 //---------------------------------------------------------------------------
@@ -276,10 +275,10 @@ inline bool insideDetails(const DocNodeVariant *n)
 {
   while (n)
   {
-    if (std::holds_alternative<DocHtmlDetails>(*n)) return TRUE;
+    if (std::holds_alternative<DocHtmlDetails>(*n)) return true;
     n=parent(n);
   }
-  return FALSE;
+  return false;
 }
 
 //---------------------------------------------------------------------------
@@ -288,10 +287,10 @@ inline bool insideDL(const DocNodeVariant *n)
 {
   while (n)
   {
-    if (std::holds_alternative<DocHtmlDescList>(*n)) return TRUE;
+    if (std::holds_alternative<DocHtmlDescList>(*n)) return true;
     n=parent(n);
   }
-  return FALSE;
+  return false;
 }
 
 #endif

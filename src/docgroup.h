@@ -17,37 +17,37 @@
 #define DOCGROUP_H
 
 #include <vector>
-#include "membergroup.h"
+
+#include "dstring.h"
+#include "types.h"
 
 class Entry;
+class MemberGroupInfo;
 
-class DocGroup
+class DocGroup final
 {
   public:
-    DocGroup() {}
-
-  public:
-    void enterFile(const QCString &fileName,int);
-    void leaveFile(const QCString &fileName,int line);
-    void enterCompound(const QCString &fileName,int line,const QCString &name);
-    void leaveCompound(const QCString &,int,const QCString & /*name*/);
-    void open(Entry *e,const QCString &,int,bool implicit=false);
-    void close(Entry *e,const QCString &fileName,int line,bool foundInline,bool implicit=false);
+    void enterFile(const DString &fileName,int);
+    void leaveFile(const DString &fileName,int line);
+    void enterCompound(const DString &fileName,int line,const DString &name);
+    void leaveCompound(const DString &,int,const DString & /*name*/);
+    void open(Entry *e,const DString &,int,bool implicit=false);
+    void close(Entry *e,const DString &fileName,int line,bool foundInline,bool implicit=false);
     void initGroupInfo(Entry *e);
-    bool isEmpty() const;
+    bool empty() const;
     void clearHeader();
     void appendHeader(const char);
     void addDocs(Entry *e);
 
   private:
     int findExistingGroup(const MemberGroupInfo *info);
-    int              m_openCount = 0;
-    QCString         m_memberGroupHeader;
-    int              m_memberGroupId = 0;
-    QCString         m_memberGroupRelates;
-    QCString         m_memberGroupDocs;
+    int                   m_openCount = 0;
+    DString               m_memberGroupHeader;
+    int                   m_memberGroupId = 0;
+    DString               m_memberGroupRelates;
+    DString               m_memberGroupDocs;
     std::vector<Grouping> m_autoGroupStack;
-    QCString         m_compoundName;
+    DString               m_compoundName;
 };
 
 #endif

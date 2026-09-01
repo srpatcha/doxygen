@@ -18,12 +18,14 @@
 
 #include <memory>
 
-#include "dotnode.h"
 #include "dotgraph.h"
-#include "memberdef.h"
+#include "dotnode.h"
+
+class Definition;
+class MemberDef;
 
 /** Representation of an call graph */
-class DotCallGraph : public DotGraph
+class DotCallGraph final : public DotGraph
 {
   public:
     DotCallGraph(const MemberDef *md,bool inverse);
@@ -33,15 +35,15 @@ class DotCallGraph : public DotGraph
     bool isTrivial() const;
     bool isTooBig() const;
     int numNodes() const;
-    QCString writeGraph(TextStream &t, GraphOutputFormat gf, EmbeddedOutputFormat ef,
-                        const QCString &path,const QCString &fileName,
-                        const QCString &relPath,bool writeImageMap=TRUE,
+    DString writeGraph(TextStream &t, GraphOutputFormat gf, EmbeddedOutputFormat ef,
+                        const DString &path,const DString &fileName,
+                        const DString &relPath,bool writeImageMap=true,
                         int graphId=-1);
     static bool isTrivial(const MemberDef *md,bool inverse);
 
   protected:
-    QCString getBaseName() const override;
-    QCString getMapLabel() const override;
+    DString getBaseName() const override;
+    DString getMapLabel() const override;
     void computeTheGraph() override;
 
   private:
@@ -51,7 +53,7 @@ class DotCallGraph : public DotGraph
     DotNode        *m_startNode;
     DotNodeMap      m_usedNodes;
     bool            m_inverse;
-    QCString        m_diskName;
+    DString        m_diskName;
     const Definition * m_scope;
 };
 

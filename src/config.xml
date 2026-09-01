@@ -1,6 +1,6 @@
 <doxygenconfig>
   <header>
-    <docs doxywizard='0' doxyfile='0'>
+    <docs filter="documentation">
       <![CDATA[
 /*
  *
@@ -69,7 +69,7 @@ Below is an alphabetical index of the tags that are recognized
 followed by the descriptions of the tags grouped by category.
 ]]>
     </docs>
-    <docs doxywizard='0' documentation='0'>
+    <docs filter="doxywizard,doxyfile">
       <![CDATA[
 This file describes the settings to be used by the documentation system
 Doxygen (www.doxygen.org) for a project.
@@ -85,7 +85,7 @@ For lists, items can also be appended using:
 \verbatim
       TAG += value [value, ...]
 \endverbatim
-Values that contain spaces should be placed between quotes (\" \").
+Values that contain spaces should be placed between quotes (" ").
 <br>
 Note:<br>
 Use Doxygen to compare the used configuration file with the template configuration file:
@@ -101,7 +101,7 @@ without replacing the environment variables or CMake type replacement variables:
     </docs>
   </header>
   <footer>
-    <docs doxywizard='0' doxyfile='0'>
+    <docs filter="documentation">
       <![CDATA[
 \section config_examples Examples
 
@@ -593,26 +593,10 @@ Go to the <a href="commands.html">next</a> section or return to the
  a physical newline was in the original file.
 ]]>
       </docs>
-      <docs doxyfile='0' documentation='0'>
-<![CDATA[
- When you need a literal `{` or `}` or `,` in the value part of an alias you have to
- escape them by means of a backslash, this can lead to conflicts with the
- commands \c \\{ and \c \\} for these it is advised to use the version \c @{ and \c @} or
- use a double escape (\c \\\\{ and \c \\\\})
-]]>
-      </docs>
-      <docs doxywizard='0' documentation='0'>
+      <docs>
 <![CDATA[
  When you need a literal `{` or `}` or `,` in the value part of an alias you have to
  escape them by means of a backslash (\c \\), this can lead to conflicts with the
- commands \c \\{ and \c \\} for these it is advised to use the version \c @{ and \c @} or
- use a double escape (\c \\\\{ and \c \\\\})
-]]>
-      </docs>
-      <docs doxyfile='0' doxywizard='0'>
-<![CDATA[
- When you need a literal `{` or `}` or `,` in the value part of an alias you have to
- escape them by means of a backslash (`\`), this can lead to conflicts with the
  commands \c \\{ and \c \\} for these it is advised to use the version \c @@{ and \c @@} or
  use a double escape (\c \\\\{ and \c \\\\})
 ]]>
@@ -670,7 +654,7 @@ Go to the <a href="commands.html">next</a> section or return to the
  Doxygen selects the parser to use depending on the extension of the files it parses.
  With this tag you can assign which parser to use for a given extension.
  Doxygen has a built-in mapping, but you can override or extend it using this tag.
- The format is <code>ext=language</code>, where \c ext is a file extension, and language is one of
+ The format is `ext=language`, where `ext` is a file extension, and `language` is one of
  the parsers supported by Doxygen: IDL, Java, JavaScript, Csharp (C#), C, C++, Lex, D, PHP,
  md (Markdown), Objective-C, Python, Slice, VHDL, Fortran (fixed format Fortran: FortranFixed,
  free formatted Fortran: FortranFree, unknown formatted Fortran: Fortran. In
@@ -749,8 +733,8 @@ Go to the <a href="commands.html">next</a> section or return to the
       <docs>
 <![CDATA[
   This tag specifies a list of words that, when matching the start of a word in the documentation,
-  will suppress auto links generation, if it is enabled via AUTOLINK_SUPPORT. 
-  This list does not affect links explicitly created using \# or 
+  will suppress auto links generation, if it is enabled via AUTOLINK_SUPPORT.
+  This list does not affect links explicitly created using \# or
   the \ref cmdlink "\\link" or \ref cmdref "\\ref" commands.
 ]]>
       </docs>
@@ -899,7 +883,7 @@ Go to the <a href="commands.html">next</a> section or return to the
     <option type='enum' id='TIMESTAMP' defval='NO'>
       <docs>
 <![CDATA[
- If the \c TIMESTAMP tag is set different from \c NO then 
+ If the \c TIMESTAMP tag is set different from \c NO then
  each generated page will contain the date or date and time when the page
  was generated. Setting this to \c NO can help when comparing the output of
  multiple runs.
@@ -1338,13 +1322,13 @@ Go to the <a href="commands.html">next</a> section or return to the
  The \c FILE_VERSION_FILTER tag can be used to specify a program or script that
  Doxygen should invoke to get the current version for each file (typically from the
  version control system). Doxygen will invoke the program by executing (via
- <code>popen()</code>) the command <code>command input-file</code>, where \c command is
- the value of the \c FILE_VERSION_FILTER tag, and \c input-file is the name
+ <code>popen()</code>) the command <code>command input_file</code>, where \c command is
+ the value of the \c FILE_VERSION_FILTER tag, and \c input_file is the name
  of an input file provided by Doxygen.
  Whatever the program writes to standard output is used as the file version.
 ]]>
       </docs>
-      <docs doxywizard='0' doxyfile='0'>
+      <docs filter="documentation">
 <![CDATA[
 <br>
 <br>
@@ -1371,7 +1355,7 @@ FILE_VERSION_FILTER = "cleartool desc -fmt \%Vn"
 \endverbatim
 ]]>
       </docs>
-      <docs documentation='0'>
+      <docs filter="doxyfile,doxywizard">
 <![CDATA[
  For an example see the documentation.
 ]]>
@@ -1411,7 +1395,7 @@ FILE_VERSION_FILTER = "cleartool desc -fmt \%Vn"
       <docs>
 <![CDATA[
  The \c EXTERNAL_TOOL_PATH tag can be used to extend the search path (PATH environment variable)
- so that external tools such as \c latex and \c gs can be found. 
+ so that external tools such as \c latex and \c gs can be found.
  \note Directories specified with EXTERNAL_TOOL_PATH are added in front of the path already specified by
  the PATH variable, and are added in the order specified.
  \note This option is particularly useful for macOS version 14 (Sonoma) and higher,
@@ -1445,7 +1429,7 @@ PATH=/Library/TeX/texbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
  generated to standard error (\c stderr) by Doxygen. If \c WARNINGS is set to
  \c YES this implies that the warnings are on.
 <br>
- \b Tip: Turn warnings on while writing the documentation.
+ <b>Tip:</b> Turn warnings on while writing the documentation.
 ]]>
       </docs>
     </option>
@@ -2041,7 +2025,7 @@ to disable this feature.
     <option type='list' id='IGNORE_PREFIX' format='string' depends='ALPHABETICAL_INDEX'>
       <docs>
 <![CDATA[
- The \c IGNORE_PREFIX tag can be used to specify a prefix 
+ The \c IGNORE_PREFIX tag can be used to specify a prefix
  (or a list of prefixes) that should be ignored while generating the index headers.
  The \c IGNORE_PREFIX tag works for classes, function and member names.
  The entity will be placed in the alphabetical list under the first letter of the entity name that remains
@@ -2102,7 +2086,7 @@ doxygen -w html new_header.html new_footer.html new_stylesheet.css YourConfigFil
  Doxygen.
 ]]>
       </docs>
-      <docs doxywizard='0' doxyfile='0'>
+      <docs filter="documentation">
 <![CDATA[
  The following markers have a special meaning inside the header and footer:
  <dl>
@@ -2202,7 +2186,7 @@ doxygen -w html new_header.html new_footer.html new_stylesheet.css YourConfigFil
  </dl>
 ]]>
       </docs>
-      <docs documentation='0'>
+      <docs filter="doxyfile,doxywizard">
 <![CDATA[
  For a description of the possible markers and block names see the documentation.
 ]]>
@@ -2261,7 +2245,7 @@ doxygen -w html new_header.html new_footer.html new_stylesheet.css YourConfigFil
  So if scrollbar customization is desired it has to be added explicitly.
 ]]>
       </docs>
-      <docs doxywizard='0' doxyfile='0'>
+      <docs filter="documentation">
 <![CDATA[
  Here is an example style sheet that gives the contents area a fixed width:
 \verbatim
@@ -2295,7 +2279,7 @@ hr.footer {
 \endverbatim
 ]]>
       </docs>
-      <docs documentation='0'>
+      <docs filter="doxyfile,doxywizard">
 <![CDATA[
  For an example see the documentation.
 ]]>
@@ -2576,7 +2560,7 @@ The \c DOCSET_PUBLISHER_NAME tag identifies the documentation publisher.
  generated documentation will be placed on the server by the user during the deployment
  of the documentation.
  The generated sitemap is called `sitemap.xml` and placed on the directory specified by
- \ref cfg_html_output "HTML_OUTPUT". In case no \c SITEMAP_URL is specified no 
+ \ref cfg_html_output "HTML_OUTPUT". In case no \c SITEMAP_URL is specified no
  sitemap is generated.
  For information about the sitemap protocol see https://www.sitemaps.org
 ]]>
@@ -2859,7 +2843,7 @@ obfuscate email addresses.
       </docs>
       <value name="HTML-CSS" desc="(which is slower, but has the best compatibility. This is the name for Mathjax version 2, for MathJax version 3 this will be translated into \c chtml)"/>
       <value name="NativeMML" desc="(i.e. MathML. Only supported for MathJax 2. For MathJax version 3 \c chtml will be used instead.)"/>
-      <value name="chtml" desc="(This is the name for Mathjax version 3, for MathJax version 2 this will be translated into \c HTML-CSS)"/>
+      <value name="chtml" desc="(This is the name for Mathjax version 3, for MathJax version 2 this will be translated into &lt;code&gt;HTML-CSS&lt;/code&gt;)"/>
       <value name="SVG"/>
     </option>
     <option type='string' id='MATHJAX_RELPATH' format='string' depends='USE_MATHJAX'>
@@ -2888,7 +2872,7 @@ obfuscate email addresses.
       <docs>
 <![CDATA[
  The \c MATHJAX_EXTENSIONS tag can be used to specify one or more MathJax extension
- names that should be enabled during MathJax rendering. 
+ names that should be enabled during MathJax rendering.
 For example for MathJax version 2 (see https://docs.mathjax.org/en/v2.7/tex.html):
 \verbatim
 MATHJAX_EXTENSIONS     = TeX/AMSmath TeX/AMSsymbols
@@ -2918,7 +2902,7 @@ a package in Mathjax version 4 one can use the package name prepended with a min
  - <a href="https://docs.mathjax.org/en/v4.0/">MathJax version 4</a>
 ]]>
       </docs>
-      <docs doxywizard='0' doxyfile='0'>
+      <docs filter="documentation">
 <![CDATA[
  As an example to disable the "Math Renderer" menu item in the "Math
  Settings" menu of MathJax:
@@ -2935,7 +2919,7 @@ MATHJAX_CODEFILE = disableRenderer.js
 \endverbatim
 ]]>
       </docs>
-      <docs documentation='0'>
+      <docs filter="doxyfile,doxywizard">
 <![CDATA[
  For an example see the documentation.
 ]]>
@@ -3095,7 +3079,7 @@ EXTRA_SEARCH_MAPPINGS = tagname1=loc1 tagname2=loc2 ...
       <docs>
 <![CDATA[
  The \c LATEX_MAKEINDEX_CMD tag can be used to specify the command name to
- generate index for \f$\mbox{\LaTeX}\f$. In case there is no backslash (`\`) as first character it
+ generate index for \f$\mbox{\LaTeX}\f$. In case there is no backslash (\c \\) as first character it
  will be automatically added in the \f$\mbox{\LaTeX}\f$ code.
 
  @note This tag is used in the generated output file (`.tex`).
@@ -3169,11 +3153,11 @@ doxygen -w latex new_header.tex new_footer.tex new_stylesheet.sty
  @note The header is subject to change so you typically
  have to regenerate the default header when upgrading to a newer version of
  Doxygen.
- The following commands have a special meaning inside the header (and footer):
 ]]>
       </docs>
-      <docs doxywizard='0' doxyfile='0'>
+      <docs filter="documentation">
 <![CDATA[
+ The following markers have a special meaning inside the header and footer:
  <dl>
  <dt><code>$title</code><dd>will be replaced with the project name.
  <dt><code>$datetime</code><dd>will be replaced with the current date and time.
@@ -3293,7 +3277,7 @@ The following block name is set based on whether or not a feature is used in the
  </dl>
 ]]>
       </docs>
-      <docs documentation='0'>
+      <docs filter="doxyfile,doxywizard">
 <![CDATA[
  For a description of the possible markers and block names see the documentation.
 ]]>
@@ -3722,7 +3706,7 @@ If set to \c NO, Doxygen will warn if a database file is already found and not m
  contain include files that are not input files but should be processed by
  the preprocessor.
 
- Note that the \c INCLUDE_PATH is not recursive, so the setting of \ref cfg_recursive "RECURSIVE" 
+ Note that the \c INCLUDE_PATH is not recursive, so the setting of \ref cfg_recursive "RECURSIVE"
  has no effect here.
 ]]>
       </docs>
@@ -3793,8 +3777,7 @@ Adding location for the tag files is done as follows:
 where `loc1` and `loc2` can be relative or absolute paths or URLs.
  See the section \ref external for more information about the use of tag files.
 
- \note
-  Each tag file must have a unique name
+ \note Each tag file must have a unique name
   (where the name does \e NOT include the path).
   If a tag file is not located in the directory in which Doxygen
   is run, you must also specify the path to the tagfile here.
@@ -3814,8 +3797,8 @@ where `loc1` and `loc2` can be relative or absolute paths or URLs.
     <option type='bool' id='ALLEXTERNALS' defval='0'>
       <docs>
 <![CDATA[
- If the \c ALLEXTERNALS tag is set to \c YES, all external classes and namespaces 
- will be listed in the class and namespace index. 
+ If the \c ALLEXTERNALS tag is set to \c YES, all external classes and namespaces
+ will be listed in the class and namespace index.
  If set to \c NO, only the inherited external classes will be listed.
 ]]>
       </docs>
@@ -3876,10 +3859,10 @@ where `loc1` and `loc2` can be relative or absolute paths or URLs.
 <![CDATA[
  The \c DOT_BATCH_SIZE specifies the number of \c dot graphs Doxygen is
  allowed to compile in a single invocation of \c dot. When set to \c 1 Doxygen will
- invoke \c dot for each graph separately, which can cause significant process creation overhead 
+ invoke \c dot for each graph separately, which can cause significant process creation overhead
  especially on systems with many CPU cores. Together with \c DOT_NUM_THREADS this setting can be used to
  optimise the dot processing speed for a particular system. Doxygen will try to give each
- thread a balanced batch of work. If the total number of graphs to process 
+ thread a balanced batch of work. If the total number of graphs to process
  exceeds `DOT_NUM_THREADS * DOT_BATCH_SIZE` then additional batches will be created for \c dot to process.
 ]]>
       </docs>
@@ -4236,6 +4219,35 @@ to be found in the default search path.
  If left blank, it is assumed PlantUML is not used or
  called during a preprocessing step. Doxygen will generate a warning when it encounters a
  \ref cmdstartuml "\\startuml" command in this case and will not generate output for the diagram.
+ <br>Note that this tag is not used when \ref cfg_plantuml_tool "PLANTUML_TOOL" is set.
+]]>
+      </docs>
+    </option>
+    <option type='string' id='PLANTUML_JAVA_PATH' format='file' defval=''>
+      <docs>
+<![CDATA[
+ When using PlantUML, the \c PLANTUML_JAVA_PATH tag can be used to specify the
+ \c java executable that is used to run the jar file given via
+ \ref cfg_plantuml_jar_path "PLANTUML_JAR_PATH".
+ If left blank, the \c java executable of the Java runtime environment the
+ \c JAVA_HOME environment variable points to is used, if that variable is set, and
+ otherwise the \c java executable is searched for in the default search path.
+ <br>Note that this tag is not used when \ref cfg_plantuml_tool "PLANTUML_TOOL" is set.
+]]>
+      </docs>
+    </option>
+    <option type='string' id='PLANTUML_TOOL' format='file' defval=''>
+      <docs>
+<![CDATA[
+ The \c PLANTUML_TOOL tag can be used to specify a PlantUML executable, e.g. a
+ PlantUML native image or a script wrapping PlantUML, that is run instead of the jar
+ file given via \ref cfg_plantuml_jar_path "PLANTUML_JAR_PATH". As such an executable
+ does not need a Java runtime environment, the tags
+ \ref cfg_plantuml_jar_path "PLANTUML_JAR_PATH" and
+ \ref cfg_plantuml_java_path "PLANTUML_JAVA_PATH" are not used in this case.
+ <br>Note that the paths given via
+ \ref cfg_plantuml_include_path "PLANTUML_INCLUDE_PATH" are passed to the executable
+ by means of the \c PLANTUML_INCLUDE_PATH environment variable.
 ]]>
       </docs>
     </option>
@@ -4292,7 +4304,7 @@ to be found in the default search path.
 ]]>
       </docs>
       <value name='AUTO' desc='(use client-side rendering for HTML and \c mmdc for LaTeX/PDF and other formats. If \c MERMAID_PATH is not set, non-HTML diagrams will produce a warning)'/>
-      <value name='CLI' desc='(use the \c mmdc tool to pre-generate images (requires \c Node.js and \c mermaid-js/mermaid-cli). Works for all output formats)'/>
+      <value name='CLI' desc='(use the \c mmdc tool to pre-generate images (requires \c Node.js and &lt;code&gt;mermaid-js/mermaid-cli&lt;/code&gt;). Works for all output formats)'/>
       <value name='CLIENT_SIDE' desc='(embed \c mermaid.js in HTML output for client-side rendering. Does not require \c mmdc but only works for HTML output)'/>
     </option>
     <option type='string' id='MERMAID_JS_URL' format='string'
@@ -4307,9 +4319,9 @@ to be found in the default search path.
  For offline use, download \c mermaid.esm.min.mjs and set this to a relative path,
  or use \c MERMAID_RENDER_MODE=CLI to pre-generate images instead.
  \par Examples:
- - Latest v11 (default): \c 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs'
- - Pinned version: \c 'https://cdn.jsdelivr.net/npm/mermaid@11.3.0/dist/mermaid.esm.min.mjs'
- - Local copy: \c './mermaid.esm.min.mjs' (user must place file in HTML output directory)
+ - Latest v11 (default): <code>https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs</code>
+ - Pinned version: <code>https://cdn.jsdelivr.net/npm/mermaid@11.3.0/dist/mermaid.esm.min.mjs</code>
+ - Local copy: <code>./mermaid.esm.min.mjs</code> (user must place file in HTML output directory)
 ]]>
       </docs>
     </option>
@@ -4429,12 +4441,9 @@ This setting is not only used for dot files but also for msc temporary files.
     <option type='obsolete' orgtype='bool' id='DOT_MULTI_TARGETS'/>
   </group>
   <generator>
-    <message name='minmaxdef'><![CDATA[<br/> Minimum value: {0}, maximum value: {1}, default value: {2}.]]></message>
-    <message name='minmaxdefcode'><![CDATA[ Minimum value: <code>{0}</code>, maximum value: <code>{1}</code>, default value: <code>{2}</code>.]]></message>
+    <message name='minmaxdefcode'><![CDATA[Minimum value: <code>{0}</code>, maximum value: <code>{1}</code>, default value: <code>{2}</code>.]]></message>
     <message name='possible'><![CDATA[Possible values are: ]]></message>
-    <message name='defvaltxt'><![CDATA[The default value is: {0}.]]></message>
     <message name='defvalcode'><![CDATA[The default value is: <code>{0}</code>.]]></message>
-    <message name='sysdep'><![CDATA[system dependent]]></message>
     <message name='defdir'><![CDATA[The default directory is: <code>{0}</code>.]]></message>
     <message name='deffile'><![CDATA[The default file is: <code>{0}</code>.]]></message>
     <message name='deffileabs'><![CDATA[The default file (with absolute path) is <code>{0}</code>]]></message>
@@ -4442,7 +4451,10 @@ This setting is not only used for dot files but also for msc temporary files.
     <message name='defimg'><![CDATA[The default image is: <code>{0}</code>.]]></message>
     <message name='defimgabs'><![CDATA[The default image (with absolute path) is <code>{0}</code>]]></message>
     <message name='defimgfull'><![CDATA[The image has to be specified with full path.]]></message>
-    <message name='depstxt'><![CDATA[This tag requires that the tag \ref cfg_{0} "{1}" is set to \c YES.]]></message>
+    <message name='depstxt'><![CDATA[This tag requires that the tag {0} is set to \c YES.]]></message>
+    <message name='depstxtref'><![CDATA[This tag requires that the tag \ref cfg_{0} "{1}" is set to \c YES.]]></message>
     <message name='andtxt'><![CDATA[ and ]]></message>
+    <message name='notetxt'><![CDATA[Note:]]></message>
+    <message name='seealsotxt'><![CDATA[See also:]]></message>
   </generator>
 </doxygenconfig>

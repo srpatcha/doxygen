@@ -43,13 +43,13 @@ if (force_qt STREQUAL "Qt5" OR NOT Qt6_FOUND)
   endif()
 endif()
 
+set(GENERATED_SRC_WIZARD ${GENERATED_SRC}/doxywizard)
 include_directories(
   .
   ${PROJECT_SOURCE_DIR}/libversion
-  ${GENERATED_SRC}
+  ${GENERATED_SRC_WIZARD}
 )
 
-set(GENERATED_SRC_WIZARD ${GENERATED_SRC}/doxywizard)
 file(MAKE_DIRECTORY ${GENERATED_SRC_WIZARD})
 
 add_definitions(-DQT_NO_CAST_FROM_ASCII -DQT_NO_CAST_TO_ASCII -DUNICODE)
@@ -76,6 +76,29 @@ add_custom_command(
     OUTPUT ${GENERATED_SRC_WIZARD}/configdoc.cpp
 )
 set_source_files_properties(${GENERATED_SRC_WIZARD}/configdoc.cpp PROPERTIES GENERATED 1)
+
+set(CONFIG_TRANSLATIONS_DIR ${PROJECT_SOURCE_DIR}/src/i18n)
+file(GLOB DOXYWIZARD_CONFIG_TRANSLATION_FILES CONFIGURE_DEPENDS "${CONFIG_TRANSLATIONS_DIR}/config_*.xml")
+foreach(config_file ${DOXYWIZARD_CONFIG_TRANSLATION_FILES})
+    get_filename_component(config_name ${config_file} NAME_WE)
+    string(REGEX REPLACE "config_(.+)" "\\1" LOCALE "${config_name}")
+
+    add_custom_command(
+        COMMAND ${Python_EXECUTABLE} ${PROJECT_SOURCE_DIR}/src/configgen.py -wiz ${CONFIG_TRANSLATIONS_DIR}/config_${LOCALE}.xml > ${GENERATED_SRC_WIZARD}/configdoc_${LOCALE}.cpp
+        DEPENDS  ${PROJECT_SOURCE_DIR}/src/configgen.py ${CONFIG_TRANSLATIONS_DIR}/config_${LOCALE}.xml
+        OUTPUT ${GENERATED_SRC_WIZARD}/configdoc_${LOCALE}.cpp
+    )
+    set(GENERATED_CONFIG ${GENERATED_CONFIG} ${GENERATED_SRC_WIZARD}/configdoc_${LOCALE}.cpp)
+    set_source_files_properties(${GENERATED_SRC_WIZARD}/configdoc_${LOCALE}.cpp PROPERTIES GENERATED 1)
+endforeach()
+
+set(CONFIG_SWITCHER ${GENERATED_SRC_WIZARD}/configswitcher.h)
+    add_custom_command(
+        COMMAND ${Python_EXECUTABLE} ${PROJECT_SOURCE_DIR}/src/configgen.py -wizswitch ${PROJECT_SOURCE_DIR}/src/config.xml ${DOXYWIZARD_CONFIG_TRANSLATION_FILES} > ${CONFIG_SWITCHER}
+        DEPENDS  ${PROJECT_SOURCE_DIR}/src/configgen.py ${PROJECT_SOURCE_DIR}/src/config.xml ${DOXYWIZARD_CONFIG_TRANSLATION_FILES}
+        OUTPUT ${CONFIG_SWITCHER}
+    )
+set_source_files_properties(${CONFIG_SWITCHER} PROPERTIES GENERATED 1)
 
 set(LEX_FILES config_doxyw)
 
@@ -113,9 +136,9 @@ foreach(lex_file ${LEX_FILES})
     else()
         add_custom_command(
             COMMAND ${Python_EXECUTABLE} ${PROJECT_SOURCE_DIR}/src/pre_lex.py ${PROJECT_SOURCE_DIR}/addon/doxywizard/${lex_file}.l  ${GENERATED_SRC_WIZARD}/${lex_file}.l ${GENERATED_SRC_WIZARD}/${lex_file}.corr ${GENERATED_SRC_WIZARD}/${lex_file}.d ${PROJECT_SOURCE_DIR}/src
-	    DEPENDS ${PROJECT_SOURCE_DIR}/src/pre_lex.py ${PROJECT_SOURCE_DIR}/addon/doxywizard/${lex_file}.l ${LEX_INC_FILES}
+            DEPENDS ${PROJECT_SOURCE_DIR}/src/pre_lex.py ${PROJECT_SOURCE_DIR}/addon/doxywizard/${lex_file}.l ${LEX_INC_FILES}
             OUTPUT  ${GENERATED_SRC_WIZARD}/${lex_file}.l ${GENERATED_SRC_WIZARD}/${lex_file}.corr ${GENERATED_SRC_WIZARD}/${lex_file}.d
-	)
+        )
     endif()
     set_source_files_properties(${GENERATED_SRC_WIZARD}/${lex_file}.l PROPERTIES GENERATED 1)
     set_source_files_properties(${GENERATED_SRC_WIZARD}/${lex_file}.corr PROPERTIES GENERATED 1)
@@ -154,9 +177,11 @@ languagedialog.h
 set(TRANSLATIONS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/i18n)
 file(GLOB DOXYWIZARD_TRANSLATION_FILES CONFIGURE_DEPENDS "${TRANSLATIONS_DIR}/doxywizard_*.ts")
 
-find_package(Qt${QT_VERSION_MAJOR}LinguistTools QUIET)
+find_package(Qt${QT_VERSION_MAJOR} COMPONENTS LinguistTools QUIET)
 if(Qt${QT_VERSION_MAJOR}LinguistTools_FOUND)
-  set_source_files_properties(${DOXYWIZARD_TRANSLATION_FILES} PROPERTIES OUTPUT_LOCATION ${CMAKE_CURRENT_BINARY_DIR})
+  set(I18N_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/i18n)
+  file(MAKE_DIRECTORY ${I18N_BINARY_DIR})
+  set_source_files_properties(${DOXYWIZARD_TRANSLATION_FILES} PROPERTIES OUTPUT_LOCATION ${I18N_BINARY_DIR})
   qt_add_translation(doxywizard_QM_FILES ${DOXYWIZARD_TRANSLATION_FILES})
   get_target_property(QT_QMAKE_EXECUTABLE Qt${QT_VERSION_MAJOR}::qmake IMPORTED_LOCATION)
   execute_process(
@@ -165,29 +190,39 @@ if(Qt${QT_VERSION_MAJOR}LinguistTools_FOUND)
       OUTPUT_STRIP_TRAILING_WHITESPACE
   )
   message(STATUS "Qt translations dir: ${QT_TRANSLATIONS_DIR}")
+
+  set(TRANSLATIONS_QRC_CONTENT "<!DOCTYPE RCC>\n<RCC version=\"1.0\">\n    <qresource>\n")
+  set(doxywizard_QM_FILES_PATHS)
+  foreach(ts_file ${DOXYWIZARD_TRANSLATION_FILES})
+    get_filename_component(ts_name ${ts_file} NAME_WE)
+    string(REGEX REPLACE "doxywizard_(.+)" "\\1" LOCALE "${ts_name}")
+    set(qm_file "${I18N_BINARY_DIR}/${ts_name}.qm")
+    list(APPEND doxywizard_QM_FILES_PATHS ${qm_file})
+
+    if (QT_TRANSLATIONS_DIR)
+      if (EXISTS "${QT_TRANSLATIONS_DIR}/qtbase_${LOCALE}.qm")
+        configure_file("${QT_TRANSLATIONS_DIR}/qtbase_${LOCALE}.qm" "${I18N_BINARY_DIR}/qtbase_${LOCALE}.qm" COPYONLY)
+        string(APPEND TRANSLATIONS_QRC_CONTENT "        <file>i18n/qtbase_${LOCALE}.qm</file>\n")
+      else()
+        message(WARNING "Qt translation file ${QT_TRANSLATIONS_DIR}/qtbase_${LOCALE}.qm not found")
+      endif()
+    endif()
+    configure_file("${PROJECT_SOURCE_DIR}/src/i18n/config_${LOCALE}.xml" "${I18N_BINARY_DIR}/config_${LOCALE}.xml" COPYONLY)
+    string(APPEND TRANSLATIONS_QRC_CONTENT "        <file>i18n/config_${LOCALE}.xml</file>\n")
+    string(APPEND TRANSLATIONS_QRC_CONTENT "        <file>i18n/${ts_name}.qm</file>\n")
+  endforeach()
+  string(APPEND TRANSLATIONS_QRC_CONTENT "    </qresource>\n</RCC>\n")
+
+  # message(STATUS "i18n.qrc:\n${TRANSLATIONS_QRC_CONTENT}")
+  file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/i18n.qrc "${TRANSLATIONS_QRC_CONTENT}")
+  set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/i18n.qrc PROPERTIES OBJECT_DEPENDS "${doxywizard_QM_FILES_PATHS}")
+  qt_add_resources(doxywizard_TRANSLATION_RESOURCES ${CMAKE_CURRENT_BINARY_DIR}/i18n.qrc)
+
 else()
   message(STATUS "Qt Linguist tools not found, translation files will not be compiled")
+  set(doxywizard_TRANSLATION_RESOURCES)
 endif()
 
-set(TRANSLATIONS_QRC_CONTENT "<!DOCTYPE RCC>\n<RCC version=\"1.0\">\n    <qresource prefix=\"/i18n\">\n")
-foreach(qm_file ${doxywizard_QM_FILES})
-  get_filename_component(qm_name ${qm_file} NAME)
-  string(REGEX REPLACE ".*/doxywizard_(.+)\\.qm$" "\\1" LOCALE "${qm_file}")
-  if (QT_TRANSLATIONS_DIR)
-    if (EXISTS "${QT_TRANSLATIONS_DIR}/qtbase_${LOCALE}.qm")
-      string(APPEND TRANSLATIONS_QRC_CONTENT "        <file alias=\"qtbase_${LOCALE}.qm\">${QT_TRANSLATIONS_DIR}/qtbase_${LOCALE}.qm</file>\n")
-    else()
-      message(WARNING "Qt translation file ${QT_TRANSLATIONS_DIR}/qtbase_${LOCALE}.qm not found")
-    endif()
-  endif()
-  string(APPEND TRANSLATIONS_QRC_CONTENT "        <file alias=\"config_${LOCALE}.xml\">${PROJECT_SOURCE_DIR}/src/i18n/config_${LOCALE}.xml</file>\n")
-  string(APPEND TRANSLATIONS_QRC_CONTENT "        <file>${qm_name}</file>\n")
-endforeach()
-string(APPEND TRANSLATIONS_QRC_CONTENT "    </qresource>\n</RCC>\n")
-
-file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/i18n.qrc "${TRANSLATIONS_QRC_CONTENT}")
-
-qt_add_resources(doxywizard_TRANSLATION_RESOURCES ${CMAKE_CURRENT_BINARY_DIR}/i18n.qrc)
 qt_add_resources(doxywizard_RESOURCES_RCC doxywizard.qrc)
 
 add_executable(doxywizard WIN32
@@ -201,12 +236,13 @@ inputint.cpp
 inputstrlist.cpp
 languagedialog.cpp
 ${GENERATED_SRC_WIZARD}/settings.h
+${CONFIG_SWITCHER}
 ${GENERATED_SRC_WIZARD}/config_doxyw.cpp
 ${GENERATED_SRC_WIZARD}/config_doxyw.l.h
 ${GENERATED_SRC_WIZARD}/configdoc.cpp
+${GENERATED_CONFIG}
 ${doxywizard_MOC}
 ${doxywizard_TRANSLATION_RESOURCES}
-${doxywizard_QM_FILES}
 ${doxywizard_RESOURCES_RCC}
 ${PROJECT_SOURCE_DIR}/templates/icon/doxygen.rc
 )

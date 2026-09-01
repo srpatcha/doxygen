@@ -16,10 +16,8 @@
 #ifndef DIR_H
 #define DIR_H
 
-#include <string>
 #include <memory>
-
-#include "fileinfo.h"
+#include <string>
 
 class DirEntry
 {
@@ -86,7 +84,7 @@ class Dir final
 
     DirIterator iterator() const;
 
-    bool isEmpty(const std::string &subdir) const;
+    bool empty(const std::string &subdir) const;
     bool exists() const;
     std::string filePath(const std::string &path,bool acceptsAbsPath=true) const;
     bool exists(const std::string &path,bool acceptsAbsPath=true) const;

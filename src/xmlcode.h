@@ -19,15 +19,9 @@
 
 #include "parserintf.h"
 
-class OutputCodeList;
-class FileDef;
-class MemberDef;
-class QCString;
-class Definition;
-
 /** XML scanner. Only support syntax highlighting of code at the moment.
  */
-class XMLCodeParser : public CodeParserInterface
+class XMLCodeParser final : public CodeParserInterface
 {
   public:
     XMLCodeParser();
@@ -35,8 +29,8 @@ class XMLCodeParser : public CodeParserInterface
     NON_COPYABLE(XMLCodeParser)
 
     void parseCode(OutputCodeList &codeOutIntf,
-                   const QCString &scopeName,
-                   const QCString &input,
+                   const DString &scopeName,
+                   const DString &input,
                    SrcLangExt,
                    bool stripCodeComments,
                    const CodeParserOptions &options

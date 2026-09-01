@@ -1,8 +1,5 @@
 /******************************************************************************
  *
- *
- *
- *
  * Copyright (C) 1997-2015 by Dimitri van Heesch.
  *
  * Permission to use, copy, modify, and distribute this software and its
@@ -19,21 +16,18 @@
 #ifndef XMLDOCVISITOR_H
 #define XMLDOCVISITOR_H
 
-#include <iostream>
-
-#include "qcstring.h"
-#include "docvisitor.h"
 #include "docnode.h"
+#include "docvisitor.h"
+#include "dstring.h"
 #include "textstream.h"
 
 class OutputCodeList;
-class QCString;
 
 /*! @brief Concrete visitor implementation for XML output. */
-class XmlDocVisitor : public DocVisitor
+class XmlDocVisitor final : public DocVisitor
 {
   public:
-    XmlDocVisitor(TextStream &t,OutputCodeList &ci,const QCString &langExt);
+    XmlDocVisitor(TextStream &t,OutputCodeList &ci,const DString &langExt);
 
     //--------------------------------------
     // visitor functions for leaf nodes
@@ -118,9 +112,9 @@ class XmlDocVisitor : public DocVisitor
     // helper functions
     //--------------------------------------
 
-    void filter(const QCString &str);
-    void startLink(const QCString &ref,const QCString &file,
-                   const QCString &anchor);
+    void filter(const DString &str, const bool keepEntities = false, const bool citeEntry = false);
+    void startLink(const DString &ref,const DString &file,
+                   const DString &anchor);
     void endLink();
 
     //--------------------------------------
@@ -131,7 +125,7 @@ class XmlDocVisitor : public DocVisitor
     OutputCodeList &m_ci;
     bool m_insidePre = false;
     bool m_hide = false;
-    QCString m_langExt;
+    DString m_langExt;
     int m_sectionLevel;
 };
 

@@ -13,30 +13,36 @@
  *
  */
 
-#include <mutex>
+// own header
 #include "plantuml.h"
-#include "util.h"
-#include "portable.h"
+
+// standard includes
+#include <mutex>
+#include <iostream>
+
+// other includes
 #include "config.h"
-#include "doxygen.h"
-#include "message.h"
 #include "debug.h"
-#include "fileinfo.h"
 #include "dir.h"
+#include "doxygen.h"
+#include "fileinfo.h"
 #include "indexlist.h"
+#include "message.h"
+#include "portable.h"
 #include "stringutil.h"
+#include "util.h"
 
 static std::mutex g_PlantUmlMutex;
 
-StringVector PlantumlManager::writePlantUMLSource(const QCString &outDirArg,const QCString &fileName,
-                                              const QCString &content,OutputFormat format, const QCString &engine,
-                                              const QCString &srcFile,int srcLine,bool inlineCode)
+StringVector PlantumlManager::writePlantUMLSource(const DString &outDirArg,const DString &fileName,
+                                              const DString &content,OutputFormat format, const DString &engine,
+                                              const DString &srcFile,int srcLine,bool inlineCode)
 {
   StringVector baseNameVector;
-  QCString baseName;
-  QCString puName;
-  QCString imgName;
-  QCString outDir(outDirArg);
+  DString baseName;
+  DString puName;
+  DString imgName;
+  DString outDir(outDirArg);
 
   Debug::print(Debug::Plantuml,0,"*** writePlantUMLSource fileName: {}\n",fileName);
   Debug::print(Debug::Plantuml,0,"*** writePlantUMLSource outDir: {}\n",outDir);
@@ -54,7 +60,7 @@ StringVector PlantumlManager::writePlantUMLSource(const QCString &outDirArg,cons
   Debug::print(Debug::Plantuml,0,"*** writePlantUMLSourcebaseName puName: {}\n",puName);
   Debug::print(Debug::Plantuml,0,"*** writePlantUMLSourcebaseName imgName: {}\n",imgName);
 
-  QCString text;
+  DString text;
   if (inlineCode) text = "@start"+engine+" "+imgName+"\n";
   text.reserve(text.length()+content.length()+100); // add room for image name and end marker
   const char *p = content.data();
@@ -62,7 +68,7 @@ StringVector PlantumlManager::writePlantUMLSource(const QCString &outDirArg,cons
   {
     char c = 0;
     bool insideComment = false;
-    QCString locEngine;
+    DString locEngine;
     while ((c=*p++))
     {
       text+=c;
@@ -83,8 +89,8 @@ StringVector PlantumlManager::writePlantUMLSource(const QCString &outDirArg,cons
               locEngine += c;
               text+=c;
             }
-            QCString inpName;
-            QCString rest;
+            DString inpName;
+            DString rest;
 
             // skip leading whitespace
             if (*p && (c==' ' || c=='\t'))
@@ -119,7 +125,7 @@ StringVector PlantumlManager::writePlantUMLSource(const QCString &outDirArg,cons
             text+=' ';
             text+=imgName;
 
-            if (!rest.isEmpty())
+            if (!rest.empty())
             {
               text += '\n';
               text += rest;
@@ -132,9 +138,9 @@ StringVector PlantumlManager::writePlantUMLSource(const QCString &outDirArg,cons
             p+=3+locEngine.length();
             if (!inlineCode)
             {
-              QCString qcOutDir(substitute(outDir,"\\","/"));
-              uint32_t pos = qcOutDir.findRev("/");
-              QCString generateType(qcOutDir.right(qcOutDir.length() - (pos + 1)) );
+              DString qcOutDir(substitute(outDir,"\\","/"));
+              size_t pos = qcOutDir.rfind('/');
+              DString generateType(pos!=DString::npos ? qcOutDir.mid(pos+1) : qcOutDir);
               Debug::print(Debug::Plantuml,0,"*** writePlantUMLSource generateType: {}\n",generateType);
               PlantumlManager::instance().insert(generateType.str(),puName.str(),outDir,format,text,srcFile,srcLine);
               Debug::print(Debug::Plantuml,0,"*** writePlantUMLSource generateType: {}\n",generateType);
@@ -153,9 +159,9 @@ StringVector PlantumlManager::writePlantUMLSource(const QCString &outDirArg,cons
   {
     text +="@end"+engine+"\n";
     //printf("content\n====\n%s\n=====\n->\n-----\n%s\n------\n",qPrint(content),qPrint(text));
-    QCString qcOutDir(substitute(outDir,"\\","/"));
-    uint32_t pos = qcOutDir.findRev("/");
-    QCString generateType(qcOutDir.right(qcOutDir.length() - (pos + 1)) );
+    DString qcOutDir(substitute(outDir,"\\","/"));
+    size_t pos = qcOutDir.rfind("/");
+    DString generateType(pos!=DString::npos ? qcOutDir.mid(pos+1) : qcOutDir);
     Debug::print(Debug::Plantuml,0,"*** writePlantUMLSource generateType: {}\n",generateType);
     PlantumlManager::instance().insert(generateType.str(),puName.str(),outDir,format,text,srcFile,srcLine);
     Debug::print(Debug::Plantuml,0,"*** writePlantUMLSource generateType: {}\n",generateType);
@@ -165,22 +171,21 @@ StringVector PlantumlManager::writePlantUMLSource(const QCString &outDirArg,cons
   return baseNameVector;
 }
 
-void PlantumlManager::generatePlantUmlFileNames(const QCString &fileName,OutputFormat format,const QCString &outDir,
-                                                QCString &baseName,QCString &puName,QCString &imgName)
+void PlantumlManager::generatePlantUmlFileNames(const DString &fileName,OutputFormat format,const DString &outDir,
+                                                DString &baseName,DString &puName,DString &imgName)
 {
   static int umlindex=1;
 
-  if (fileName.isEmpty()) // generate name
+  if (fileName.empty()) // generate name
   {
     std::lock_guard<std::mutex> lock(g_PlantUmlMutex);
-    puName = "inline_umlgraph_"+QCString().setNum(umlindex);
-    baseName = outDir+"/inline_umlgraph_"+QCString().setNum(umlindex++);
+    puName = "inline_umlgraph_"+DString().setNum(umlindex);
+    baseName = outDir+"/inline_umlgraph_"+DString().setNum(umlindex++);
   }
   else // user specified name
   {
     baseName = fileName;
-    int i=baseName.findRev('.');
-    if (i!=-1) baseName = baseName.left(i);
+    if (size_t i=baseName.rfind('.'); i!=DString::npos) baseName = baseName.left(i);
     puName = baseName;
     baseName.prepend(outDir+"/");
   }
@@ -199,14 +204,13 @@ void PlantumlManager::generatePlantUmlFileNames(const QCString &fileName,OutputF
   }
 }
 
-void PlantumlManager::generatePlantUMLOutput(const QCString &baseName,const QCString &/* outDir */,OutputFormat format,bool toIndex)
+void PlantumlManager::generatePlantUMLOutput(const DString &baseName,const DString &/* outDir */,OutputFormat format,bool toIndex)
 {
   if (!toIndex) return;
-  QCString imgName = baseName;
+  DString imgName = baseName;
   // The basename contains path, we need to strip the path from the filename in order
   // to create the image file name which should be included in the index.qhp (Qt help index file).
-  int i = imgName.findRev('/');
-  if (i!=-1) // strip path
+  if (size_t i = imgName.rfind('/'); i!=DString::npos) // strip path
   {
     imgName=imgName.mid(i+1);
   }
@@ -239,6 +243,27 @@ PlantumlManager::PlantumlManager()
 {
 }
 
+bool PlantumlManager::isEnabled()
+{
+  return !Config_getString(PLANTUML_JAR_PATH).empty() ||
+         !Config_getString(PLANTUML_TOOL).empty();
+}
+
+/** Returns the java executable used to run the PlantUML jar file. */
+static DString javaExecutable()
+{
+  DString javaPath = Config_getString(PLANTUML_JAVA_PATH);
+  if (!javaPath.empty()) return javaPath;
+  DString javaHome = Portable::getenv("JAVA_HOME");
+  if (!javaHome.empty())
+  {
+    DString javaHomeExe = javaHome+"/bin/java"+Portable::commandExtension();
+    FileInfo fi(javaHomeExe.str());
+    if (fi.exists() && fi.isFile()) return javaHomeExe;
+  }
+  return "java";
+}
+
 static void runPlantumlContent(const PlantumlManager::FilesMap &plantumlFiles,
                                const PlantumlManager::ContentMap &plantumlContent,
                                PlantumlManager::OutputFormat format)
@@ -253,15 +278,18 @@ static void runPlantumlContent(const PlantumlManager::FilesMap &plantumlFiles,
                test_doxygen/DOXYGEN_OUTPUT/html/A
    */
   int exitCode = 0;
-  QCString plantumlJarPath = Config_getString(PLANTUML_JAR_PATH);
-  QCString plantumlConfigFile = Config_getString(PLANTUML_CFG_FILE);
+  DString plantumlJarPath = Config_getString(PLANTUML_JAR_PATH);
+  DString plantumlConfigFile = Config_getString(PLANTUML_CFG_FILE);
+  DString plantumlTool = Config_getString(PLANTUML_TOOL);
+  bool useJar = plantumlTool.empty(); // no PlantUML executable given, so run the jar file via java
 
-  QCString pumlExe = "java";
-  QCString pumlArgs = "";
-  QCString pumlType = "";
-  QCString pumlOutDir = "";
+  DString pumlExe = useJar ? javaExecutable() : plantumlTool;
+  DString pumlArgs = "";
+  DString pumlType = "";
+  DString pumlOutDir = "";
 
-  const StringVector &pumlIncludePathList = Config_getList(PLANTUML_INCLUDE_PATH);
+  StringVector pumlIncludePathList = Config_getList(PLANTUML_INCLUDE_PATH);
+  if (useJar)
   {
     auto it = pumlIncludePathList.begin();
     if (it!=pumlIncludePathList.end())
@@ -276,10 +304,24 @@ static void runPlantumlContent(const PlantumlManager::FilesMap &plantumlFiles,
       pumlArgs += it->c_str();
       ++it;
     }
+    if (!pumlIncludePathList.empty()) pumlArgs += "\" ";
+    pumlArgs += "-Djava.awt.headless=true -jar \""+plantumlJarPath+"\" ";
   }
-  if (!pumlIncludePathList.empty()) pumlArgs += "\" ";
-  pumlArgs += "-Djava.awt.headless=true -jar \""+plantumlJarPath+"\" ";
-  if (!plantumlConfigFile.isEmpty())
+  else if (!pumlIncludePathList.empty())
+  {
+    // a PlantUML executable does not take java system properties, but PlantUML also
+    // accepts the include path via the environment.
+    DString includePath;
+    bool first = true;
+    for (const auto &path : pumlIncludePathList)
+    {
+      if (!first) includePath += Portable::pathListSeparator();
+      includePath += path.c_str();
+      first = false;
+    }
+    Portable::setenv("PLANTUML_INCLUDE_PATH",includePath);
+  }
+  if (!plantumlConfigFile.empty())
   {
     pumlArgs += "-config \"";
     pumlArgs += plantumlConfigFile;
@@ -287,7 +329,7 @@ static void runPlantumlContent(const PlantumlManager::FilesMap &plantumlFiles,
   }
   // the -graphvizdot option expects a relative or absolute path to the dot executable, so
   // we need to use the unverified DOT_PATH option and check if it points to an existing file.
-  QCString dotPath = Config_getString(DOT_PATH);
+  DString dotPath = Config_getString(DOT_PATH);
   FileInfo dp(dotPath.str());
   if (Config_getBool(HAVE_DOT) && dp.exists() && dp.isFile())
   {
@@ -311,9 +353,9 @@ static void runPlantumlContent(const PlantumlManager::FilesMap &plantumlFiles,
   {
     for (const auto &[name,nb] : plantumlContent)
     {
-      if (nb.content.isEmpty()) continue;
+      if (nb.content.empty()) continue;
 
-      QCString pumlArguments = pumlArgs;
+      DString pumlArguments = pumlArgs;
       msg("Generating PlantUML {} Files in {}\n",pumlType,name);
       pumlArguments+="-o \"";
       pumlArguments+=nb.outDir;
@@ -322,7 +364,7 @@ static void runPlantumlContent(const PlantumlManager::FilesMap &plantumlFiles,
       pumlArguments+=pumlType;
       pumlArguments+=" ";
 
-      QCString puFileName("");
+      DString puFileName("");
       puFileName+=nb.outDir;
       puFileName+="/";
       pumlOutDir=puFileName;
@@ -336,7 +378,7 @@ static void runPlantumlContent(const PlantumlManager::FilesMap &plantumlFiles,
       pumlArguments+="\" ";
 
 
-      QCString cachedContent;
+      DString cachedContent;
       FileInfo fi(puFileName.str());
       if (fi.exists())
       {
@@ -354,10 +396,10 @@ static void runPlantumlContent(const PlantumlManager::FilesMap &plantumlFiles,
 
       if (cachedContent == nb.content) continue;
 
-      if ((exitCode=Portable::system(pumlExe.data(),pumlArguments.data(),TRUE))!=0)
+      if ((exitCode=Portable::system(pumlExe.data(),pumlArguments.data(),true))!=0)
       {
-        err_full(nb.srcFile,nb.srcLine,"Problems running PlantUML. Verify that the command 'java -jar \"{}\" -h' works from the command line. Exit code: {}.",
-            plantumlJarPath,exitCode);
+        err_full(nb.srcFile,nb.srcLine,"Problems running PlantUML. Verify that the command '{} -h' works from the command line. Exit code: {}.",
+            useJar ? pumlExe+" -jar \""+plantumlJarPath+"\"" : pumlExe,exitCode);
       }
 
       if ( (format==PlantumlManager::PUML_EPS) && (Config_getBool(USE_PDFLATEX)) )
@@ -369,7 +411,7 @@ static void runPlantumlContent(const PlantumlManager::FilesMap &plantumlFiles,
           for (const auto &str : files_kv->second)
           {
             const int maxCmdLine = 40960;
-            QCString epstopdfArgs(maxCmdLine, QCString::ExplicitSize);
+            DString epstopdfArgs(maxCmdLine, DString::ExplicitSize);
             epstopdfArgs.sprintf("\"%s%s.eps\" --outfile=\"%s%s.pdf\"",
                 pumlOutDir.data(),str.c_str(), pumlOutDir.data(),str.c_str());
             if ((exitCode=Portable::system("epstopdf",epstopdfArgs.data()))!=0)
@@ -434,8 +476,8 @@ static void addPlantumlFiles(PlantumlManager::FilesMap &plantumlFiles,
 }
 
 static void addPlantumlContent(PlantumlManager::ContentMap &plantumlContent,
-                               const std::string &key, const QCString &outDir, const QCString &puContent,
-                               const QCString &srcFile,int srcLine)
+                               const std::string &key, const DString &outDir, const DString &puContent,
+                               const DString &srcFile,int srcLine)
 {
   auto kv = plantumlContent.find(key);
   if (kv==plantumlContent.end())
@@ -446,8 +488,8 @@ static void addPlantumlContent(PlantumlManager::ContentMap &plantumlContent,
 }
 
 void PlantumlManager::insert(const std::string &key, const std::string &value,
-                             const QCString &outDir,OutputFormat format,const QCString &puContent,
-                             const QCString &srcFile,int srcLine)
+                             const DString &outDir,OutputFormat format,const DString &puContent,
+                             const DString &srcFile,int srcLine)
 {
   Debug::print(Debug::Plantuml,0,"*** PlantumlManager::insert key:{} ,value:{}\n",key,value);
 

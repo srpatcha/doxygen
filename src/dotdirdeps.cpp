@@ -13,23 +13,25 @@
 *
 */
 
+// own header
 #include "dotdirdeps.h"
-#include "util.h"
-#include "doxygen.h"
-#include "config.h"
-#include "image.h"
-#include "dotnode.h"
 
-#include <algorithm>
-#include <iterator>
-#include <utility>
-#include <cstdint>
-#include <math.h>
-#include <cassert>
+// standard includes
+#include <cmath>
 #include <map>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
+
+// other includes
+#include "config.h"
+#include "dotnode.h"
+#include "doxygen.h"
+#include "image.h"
+#include "textstream.h"
+#include "util.h"
+
 
 using DirDefMap = std::map<std::string,const DirDef *>;
 
@@ -61,12 +63,12 @@ class DotDirPropertyBuilder
 typedef std::vector< std::pair< std::unique_ptr<DirRelation>, bool> > DirRelations;
 
 /** Returns a DOT color name according to the directory depth. */
-static QCString getDirectoryBackgroundColor(int depthIndex)
+static DString getDirectoryBackgroundColor(int depthIndex)
 {
   int hue   = Config_getInt(HTML_COLORSTYLE_HUE);
   int sat   = Config_getInt(HTML_COLORSTYLE_SAT);
   int gamma = Config_getInt(HTML_COLORSTYLE_GAMMA);
-  assert(depthIndex>=0 && depthIndex<=Config_getInt(DIR_GRAPH_MAX_DEPTH));
+  ASSERT(depthIndex>=0 && depthIndex<=Config_getInt(DIR_GRAPH_MAX_DEPTH));
   float fraction = static_cast<float>(depthIndex)/static_cast<float>(Config_getInt(DIR_GRAPH_MAX_DEPTH));
   const char hex[] = "0123456789abcdef";
   int range = 0x40; // range from darkest color to lightest color
@@ -77,9 +79,9 @@ static QCString getDirectoryBackgroundColor(int depthIndex)
   int red   = static_cast<int>(r*255.0);
   int green = static_cast<int>(g*255.0);
   int blue  = static_cast<int>(b*255.0);
-  assert(red>=0   && red<=255);
-  assert(green>=0 && green<=255);
-  assert(blue>=0  && blue<=255);
+  ASSERT(red>=0   && red<=255);
+  ASSERT(green>=0 && green<=255);
+  ASSERT(blue>=0  && blue<=255);
   char colStr[8];
   colStr[0]='#';
   colStr[1]=hex[red>>4];
@@ -136,7 +138,7 @@ static std::string getDirectoryBorderStyle(const DotDirProperty &property)
 
 static TextStream &common_attributes(TextStream &t, const DirDef *const dir, const DotDirProperty &prop)
 {
-  QCString url = dir->getOutputFileBase();
+  DString url = dir->getOutputFileBase();
   addHtmlExtensionIfMissing(url);
   return t <<
     "style=\""   << getDirectoryBorderStyle(prop) << "\", "
@@ -216,10 +218,10 @@ static void addDependencies(DirRelations &dependencies,const DirDef *const srcDi
 {
   for (const auto &usedDirectory : srcDir->usedDirs())
   {
-    const auto dstDir = usedDirectory->dir();
+    const auto &dstDir = usedDirectory->dir();
     if (!dstDir->isParentOf(srcDir) && (isLeaf || usedDirectory->hasDirectSrcDeps()))
     {
-      QCString relationName;
+      DString relationName;
       relationName.sprintf("dir_%06d_%06d", srcDir->dirIndex(), dstDir->dirIndex());
       bool directRelation = isLeaf ? usedDirectory->hasDirectDstDeps() : usedDirectory->hasDirectDeps();
       dependencies.emplace_back(
@@ -257,7 +259,7 @@ static void drawTree(DirRelations &dependencies, TextStream &t, const DirDef *co
       }
 
       // process all sub directories
-      for (const auto subDirectory : directory->subDirs())
+      for (const auto &subDirectory : directory->subDirs())
       {
         drawTree(dependencies, t, subDirectory, startLevel, directoriesInGraph, false);
       }
@@ -306,7 +308,7 @@ void writeDotDirDepGraph(TextStream &t,const DirDef *dd,bool linkRelations)
   };
 
   // if dd has a parent draw it as the outer layer
-  const auto parent = dd->parent();
+  const auto &parent = dd->parent();
   if (parent)
   {
     const DotDirProperty parentDirProperty = DotDirPropertyBuilder().
@@ -316,7 +318,7 @@ void writeDotDirDepGraph(TextStream &t,const DirDef *dd,bool linkRelations)
 
     {
       // draw all directories which have `dd->parent()` as parent and `dd` as dependent
-      const auto newEnd = std::stable_partition(usedDirsNotDrawn.begin(), usedDirsNotDrawn.end(),
+      const auto &newEnd = std::stable_partition(usedDirsNotDrawn.begin(), usedDirsNotDrawn.end(),
         [&](const DirDef *const usedDir)
         {
           if (dd!=usedDir && dd->parent()==usedDir->parent()) // usedDir and dd share the same parent
@@ -342,7 +344,7 @@ void writeDotDirDepGraph(TextStream &t,const DirDef *dd,bool linkRelations)
 
   // add nodes for other used directories (i.e. outside of the cluster of directories directly connected to dd)
   {
-    const auto newEnd = std::stable_partition(usedDirsNotDrawn.begin(), usedDirsNotDrawn.end(),
+    const auto &newEnd = std::stable_partition(usedDirsNotDrawn.begin(), usedDirsNotDrawn.end(),
      [&](const DirDef *const usedDir) // for each used dir (=directly used or a parent of a directly used dir)
      {
        const DirDef *dir=dd;
@@ -370,16 +372,16 @@ void writeDotDirDepGraph(TextStream &t,const DirDef *dd,bool linkRelations)
     {
       const auto &relation         = relationPair.first;
       const bool directRelation    = relationPair.second;
-      const auto udir              = relation->destination();
-      const auto usedDir           = udir->dir();
+      const auto &udir             = relation->destination();
+      const auto &usedDir          = udir->dir();
       const bool destIsSibling     = std::find(std::begin(usedDirsDrawn), std::end(usedDirsDrawn), usedDir) != std::end(usedDirsDrawn);
       const bool destIsDrawn       = dirsInGraph.find(usedDir->getOutputFileBase().str())!=dirsInGraph.end(); // only point to nodes that are in the graph
       const bool atMaxDepth        = isAtMaxDepth(usedDir, dd->level());
 
       if (destIsSibling || (destIsDrawn && (directRelation || atMaxDepth)))
       {
-        const auto relationName = relation->getOutputFileBase();
-        const auto dir = relation->source();
+        const auto &relationName = relation->getOutputFileBase();
+        const auto &dir = relation->source();
         Doxygen::dirRelations.add(relationName,
             std::make_unique<DirRelation>(
                relationName,dir,udir));
@@ -389,7 +391,7 @@ void writeDotDirDepGraph(TextStream &t,const DirDef *dd,bool linkRelations)
         t << " [headlabel=\"" << nrefs << "\", labeldistance=1.5";
         if (linkRelations)
         {
-          QCString fn = relationName;
+          DString fn = relationName;
           addHtmlExtensionIfMissing(fn);
           t << " headhref=\"" << fn << "\"";
           t << " href=\"" << fn << "\"";
@@ -408,7 +410,7 @@ DotDirDeps::~DotDirDeps()
 {
 }
 
-QCString DotDirDeps::getBaseName() const
+DString DotDirDeps::getBaseName() const
 {
   return m_dir->getOutputFileBase()+"_dep";
 
@@ -425,22 +427,22 @@ void DotDirDeps::computeTheGraph()
   m_theGraph = md5stream.str();
 }
 
-QCString DotDirDeps::getMapLabel() const
+DString DotDirDeps::getMapLabel() const
 {
-  return escapeCharsInString(m_baseName,FALSE);
+  return escapeCharsInString(m_baseName,false);
 }
 
-QCString DotDirDeps::getImgAltText() const
+DString DotDirDeps::getImgAltText() const
 {
   return convertToXML(m_dir->displayName());
 }
 
-QCString DotDirDeps::writeGraph(TextStream &out, GraphOutputFormat graphFormat, EmbeddedOutputFormat textFormat,
-                                const QCString &path, const QCString &fileName, const QCString &relPath, bool generateImageMap,
+DString DotDirDeps::writeGraph(TextStream &out, GraphOutputFormat graphFormat, EmbeddedOutputFormat textFormat,
+                                const DString &path, const DString &fileName, const DString &relPath, bool generateImageMap,
                                 int graphId, bool linkRelations)
 {
   m_linkRelations = linkRelations;
-  m_urlOnly = TRUE;
+  m_urlOnly = true;
 
   m_doNotAddImageToIndex = textFormat!=EmbeddedOutputFormat::Html;
 

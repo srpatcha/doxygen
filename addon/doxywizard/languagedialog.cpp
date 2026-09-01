@@ -23,6 +23,22 @@
 #include <QFileInfo>
 #include <QDomDocument>
 
+static bool xmlSetContent(QDomDocument &doc, QIODevice *dev, QString *err, int *errLine, int *errCol)
+{
+#if QT_VERSION >= QT_VERSION_CHECK(6, 8, 0)
+  auto result = doc.setContent(dev, QDomDocument::ParseOption::Default);
+  if (!result)
+  {
+    *err     = result.errorMessage;
+    *errLine = static_cast<int>(result.errorLine);
+    *errCol  = static_cast<int>(result.errorColumn);
+  }
+  return bool(result);
+#else
+  return doc.setContent(dev, false, err, errLine, errCol);
+#endif
+}
+
 LanguageDialog::LanguageDialog(const QString &currentLocale,
                                QWidget *parent)
     : QDialog(parent)
@@ -64,7 +80,7 @@ LanguageDialog::LanguageDialog(const QString &currentLocale,
         QDomDocument trConfigXml;
         QString err = tr("Error");
         int errLine=0,errCol=0;
-        if (trConfigXml.setContent(&trFile,false,&err,&errLine,&errCol))
+        if (xmlSetContent(trConfigXml,&trFile,&err,&errLine,&errCol))
         {
           QString langLabel = trConfigXml.documentElement().attribute(QString::fromLatin1("lang"));
           auto *rb = new QRadioButton(langLabel, groupBox);
@@ -93,10 +109,10 @@ LanguageDialog::LanguageDialog(const QString &currentLocale,
 
   mainLayout->addWidget(groupBox);
 
-  // Buttons: Cancel  |  Select & Quit
+  // Buttons: Cancel  |  Select & Restart
   auto *buttonBox = new QDialogButtonBox(this);
   auto *cancelBtn = buttonBox->addButton(QDialogButtonBox::Cancel);
-  auto *selectBtn = buttonBox->addButton(tr("Select and Quit"),
+  auto *selectBtn = buttonBox->addButton(tr("Select and Restart"),
       QDialogButtonBox::AcceptRole);
   selectBtn->setDefault(true);
 

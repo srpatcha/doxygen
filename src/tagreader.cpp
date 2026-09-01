@@ -13,33 +13,34 @@
  *
  */
 
+// own header
 #include "tagreader.h"
 
-#include <map>
-#include <functional>
-#include <utility>
+// standard includes
 #include <algorithm>
+#include <cstdarg>
+#include <functional>
+#include <map>
+#include <utility>
 #include <variant>
 
-#include <assert.h>
-#include <stdio.h>
-#include <stdarg.h>
-
-#include "xml.h"
-#include "entry.h"
-#include "doxygen.h"
-#include "util.h"
-#include "message.h"
-#include "defargs.h"
+// other includes
+#include "anchor.h"
 #include "arguments.h"
-#include "filedef.h"
-#include "filename.h"
-#include "section.h"
+#include "construct.h"
 #include "containers.h"
 #include "debug.h"
-#include "anchor.h"
+#include "defargs.h"
+#include "doxygen.h"
+#include "entry.h"
+#include "filedef.h"
+#include "filename.h"
+#include "message.h"
 #include "moduledef.h"
-#include "construct.h"
+#include "section.h"
+#include "stringutil.h"
+#include "util.h"
+#include "xml.h"
 
 // ----------------- private part -----------------------------------------------
 
@@ -49,32 +50,32 @@ namespace {
 class TagAnchorInfo
 {
   public:
-    TagAnchorInfo(const QCString &f,
-                  const QCString &l,
-                  const QCString &t=QCString())
+    TagAnchorInfo(const DString &f,
+                  const DString &l,
+                  const DString &t=DString())
       : label(l), fileName(f), title(t) {}
-    QCString label;
-    QCString fileName;
-    QCString title;
+    DString label;
+    DString fileName;
+    DString title;
 };
 
 /** Container for enum values that are scoped within an enum */
 class TagEnumValueInfo
 {
   public:
-    QCString name;
-    QCString file;
-    QCString anchor;
-    QCString clangid;
+    DString name;
+    DString file;
+    DString anchor;
+    DString clangid;
 };
 
 /** Container for include info that can be read from a tagfile */
 class TagIncludeInfo
 {
   public:
-    QCString id;
-    QCString name;
-    QCString text;
+    DString id;
+    DString name;
+    DString text;
     bool isLocal;
     bool isImported;
     bool isModule;
@@ -85,13 +86,13 @@ class TagIncludeInfo
 class TagMemberInfo
 {
   public:
-    QCString type;
-    QCString name;
-    QCString anchorFile;
-    QCString anchor;
-    QCString arglist;
-    QCString kind;
-    QCString clangId;
+    DString type;
+    DString name;
+    DString anchorFile;
+    DString anchor;
+    DString arglist;
+    DString kind;
+    DString clangId;
     std::vector<TagAnchorInfo> docAnchors;
     Protection prot = Protection::Public;
     Specifier virt = Specifier::Normal;
@@ -104,20 +105,20 @@ class TagMemberInfo
 struct TagCompoundInfo
 {
   std::vector<TagMemberInfo> members;
-  QCString name;
-  QCString filename;
+  DString name;
+  DString filename;
   std::vector<TagAnchorInfo> docAnchors;
   int lineNr = 0;
 };
 
 
 /** Container for class specific info that can be read from a tagfile */
-struct TagClassInfo : public TagCompoundInfo
+struct TagClassInfo final : public TagCompoundInfo
 {
   enum class Kind { None=-1, Class, Struct, Union, Interface, Exception, Protocol, Category, Enum, Service, Singleton };
   TagClassInfo(Kind k) : kind(k) {}
-  QCString clangId;
-  QCString anchor;
+  DString clangId;
+  DString anchor;
   std::vector<BaseInfo> bases;
   StringVector templateArguments;
   StringVector classList;
@@ -128,26 +129,26 @@ struct TagClassInfo : public TagCompoundInfo
 using TagClassInfoPtr = std::unique_ptr<TagClassInfo>;
 
 /** Container for concept specific info that can be read from a tagfile */
-struct TagConceptInfo : public TagCompoundInfo
+struct TagConceptInfo final : public TagCompoundInfo
 {
-  QCString clangId;
+  DString clangId;
 };
 
 using TagConceptInfoPtr = std::unique_ptr<TagConceptInfo>;
 
 /** Container for module specific info that can be read from a tagfile */
-struct TagModuleInfo : public TagCompoundInfo
+struct TagModuleInfo final : public TagCompoundInfo
 {
-  QCString clangId;
+  DString clangId;
 };
 
 using TagModuleInfoPtr = std::unique_ptr<TagModuleInfo>;
 
 
 /** Container for namespace specific info that can be read from a tagfile */
-struct TagNamespaceInfo : public TagCompoundInfo
+struct TagNamespaceInfo final : public TagCompoundInfo
 {
-  QCString clangId;
+  DString clangId;
   StringVector classList;
   StringVector conceptList;
   StringVector namespaceList;
@@ -156,7 +157,7 @@ struct TagNamespaceInfo : public TagCompoundInfo
 using TagNamespaceInfoPtr = std::unique_ptr<TagNamespaceInfo>;
 
 /** Container for package specific info that can be read from a tagfile */
-struct TagPackageInfo : public TagCompoundInfo
+struct TagPackageInfo final : public TagCompoundInfo
 {
   StringVector classList;
 };
@@ -164,9 +165,9 @@ struct TagPackageInfo : public TagCompoundInfo
 using TagPackageInfoPtr = std::unique_ptr<TagPackageInfo>;
 
 /** Container for file specific info that can be read from a tagfile */
-struct TagFileInfo : public TagCompoundInfo
+struct TagFileInfo final : public TagCompoundInfo
 {
-  QCString path;
+  DString path;
   StringVector classList;
   StringVector conceptList;
   StringVector namespaceList;
@@ -176,9 +177,9 @@ struct TagFileInfo : public TagCompoundInfo
 using TagFileInfoPtr = std::unique_ptr<TagFileInfo>;
 
 /** Container for group specific info that can be read from a tagfile */
-struct TagGroupInfo : public TagCompoundInfo
+struct TagGroupInfo final : public TagCompoundInfo
 {
-  QCString title;
+  DString title;
   StringVector subgroupList;
   StringVector classList;
   StringVector conceptList;
@@ -192,18 +193,18 @@ struct TagGroupInfo : public TagCompoundInfo
 using TagGroupInfoPtr = std::unique_ptr<TagGroupInfo>;
 
 /** Container for page specific info that can be read from a tagfile */
-struct TagPageInfo : public TagCompoundInfo
+struct TagPageInfo final : public TagCompoundInfo
 {
-  QCString title;
+  DString title;
   StringVector subpages;
 };
 
 using TagPageInfoPtr = std::unique_ptr<TagPageInfo>;
 
 /** Container for directory specific info that can be read from a tagfile */
-struct TagDirInfo : public TagCompoundInfo
+struct TagDirInfo final : public TagCompoundInfo
 {
-  QCString path;
+  DString path;
   StringVector subdirList;
   StringVector fileList;
 };
@@ -211,11 +212,11 @@ struct TagDirInfo : public TagCompoundInfo
 using TagDirInfoPtr = std::unique_ptr<TagDirInfo>;
 
 /** Container for requirement specific info that can be read from a tagfile */
-struct TagRequirementInfo : public TagCompoundInfo
+struct TagRequirementInfo final : public TagCompoundInfo
 {
-  QCString id;
-  QCString title;
-  QCString fileName;
+  DString id;
+  DString title;
+  DString fileName;
 };
 
 using TagRequirementInfoPtr = std::unique_ptr<TagRequirementInfo>;
@@ -357,10 +358,10 @@ class TagFileParser
       m_state = Invalid;
     }
 
-    void startElement( const QCString &name, const XMLHandlers::Attributes& attrib );
-    void endElement( const QCString &name );
-    void characters ( const QCString & ch ) { m_curString+=ch; }
-    void error( const QCString &fileName,int lineNr,const QCString &msg)
+    void startElement( const DString &name, const XMLHandlers::Attributes& attrib );
+    void endElement( const DString &name );
+    void characters ( const DString & ch ) { m_curString+=ch; }
+    void error( const DString &fileName,int lineNr,const DString &msg)
     {
       warn(fileName,lineNr,"{}",msg);
     }
@@ -396,9 +397,10 @@ class TagFileParser
     {
       m_curMember = TagMemberInfo();
       m_curMember.kind   = XMLHandlers::value(attrib,"kind");
-      QCString protStr   = XMLHandlers::value(attrib,"protection");
-      QCString virtStr   = XMLHandlers::value(attrib,"virtualness");
-      QCString staticStr = XMLHandlers::value(attrib,"static");
+      DString protStr   = XMLHandlers::value(attrib,"protection");
+      DString virtStr   = XMLHandlers::value(attrib,"virtualness");
+      DString staticStr = XMLHandlers::value(attrib,"static");
+      DString typeStr   = XMLHandlers::value(attrib,"type");
       m_curMember.lineNr = m_locator->lineNr();
       if (protStr=="protected")
       {
@@ -418,7 +420,11 @@ class TagFileParser
       }
       if (staticStr=="yes")
       {
-        m_curMember.isStatic = TRUE;
+        m_curMember.isStatic = true;
+      }
+      if (!typeStr.empty())
+      {
+        m_curMember.type = typeStr;
       }
       m_stateStack.push(m_state);
       m_state = InMember;
@@ -469,7 +475,7 @@ class TagFileParser
 
     void endEnumValue()
     {
-      m_curEnumValue.name = QCString(m_curString).stripWhiteSpace().str();
+      m_curEnumValue.name = DString(m_curString).stripWhiteSpace().str();
       m_state = m_stateStack.top();
       m_stateStack.pop();
       if (m_state==InMember)
@@ -781,8 +787,8 @@ class TagFileParser
       TagClassInfo *info = m_curCompound.getClassInfo();
       if (m_state==InClass && info)
       {
-        QCString protStr = XMLHandlers::value(attrib,"protection");
-        QCString virtStr = XMLHandlers::value(attrib,"virtualness");
+        DString protStr = XMLHandlers::value(attrib,"protection");
+        DString virtStr = XMLHandlers::value(attrib,"virtualness");
         Protection prot = Protection::Public;
         Specifier  virt = Specifier::Normal;
         if (protStr=="protected")
@@ -1058,10 +1064,10 @@ class TagFileParser
     TagEnumValueInfo           m_curEnumValue;
     TagIncludeInfo             m_curIncludes;
 
-    QCString                   m_curString;
-    QCString                   m_tagName;
-    QCString                   m_fileName;
-    QCString                   m_title;
+    DString                   m_curString;
+    DString                   m_tagName;
+    DString                   m_fileName;
+    DString                   m_title;
     State                      m_state = Invalid;
     std::stack<State>          m_stateStack;
     const XMLLocator          *m_locator = nullptr;
@@ -1156,7 +1162,7 @@ static const std::map< std::string, CompoundFactory > g_compoundFactory =
 
 //---------------------------------------------------------------------------------------------------------------
 
-void TagFileParser::startElement( const QCString &name, const XMLHandlers::Attributes& attrib )
+void TagFileParser::startElement( const DString &name, const XMLHandlers::Attributes& attrib )
 {
   //printf("startElement '%s'\n",qPrint(name));
   auto it = g_elementHandlers.find(name.str());
@@ -1170,7 +1176,7 @@ void TagFileParser::startElement( const QCString &name, const XMLHandlers::Attri
   }
 }
 
-void TagFileParser::endElement( const QCString &name )
+void TagFileParser::endElement( const DString &name )
 {
   //printf("endElement '%s'\n",qPrint(name));
   auto it = g_elementHandlers.find(name.str());
@@ -1207,7 +1213,7 @@ void TagFileParser::startCompound( const XMLHandlers::Attributes& attrib )
   TagClassInfo *classInfo = m_curCompound.getClassInfo();
   if (isObjC=="yes" && classInfo)
   {
-    classInfo->isObjC = TRUE;
+    classInfo->isObjC = true;
   }
 }
 
@@ -1439,7 +1445,7 @@ void TagFileParser::buildMemberList(const std::shared_ptr<Entry> &ce,const std::
     me->type       = tmi.type;
     me->name       = tmi.name;
     me->args       = tmi.arglist;
-    if (!me->args.isEmpty())
+    if (!me->args.empty())
     {
       me->argList = *stringToArgumentList(SrcLangExt::Cpp,me->args);
     }
@@ -1456,7 +1462,7 @@ void TagFileParser::buildMemberList(const std::shared_ptr<Entry> &ce,const std::
         ev->tagInfoData.tagName    = m_tagName;
         ev->tagInfoData.anchor     = evi.anchor;
         ev->tagInfoData.fileName   = evi.file;
-        ev->hasTagInfo    = TRUE;
+        ev->hasTagInfo    = true;
         me->moveToSubEntryAndKeep(ev);
       }
     }
@@ -1474,7 +1480,7 @@ void TagFileParser::buildMemberList(const std::shared_ptr<Entry> &ce,const std::
     me->tagInfoData.tagName    = m_tagName;
     me->tagInfoData.anchor     = tmi.anchor;
     me->tagInfoData.fileName   = tmi.anchorFile;
-    me->hasTagInfo    = TRUE;
+    me->hasTagInfo    = true;
     if (tmi.kind=="define")
     {
       me->type="#define";
@@ -1563,7 +1569,7 @@ void TagFileParser::buildClassEntry(const std::shared_ptr<Entry> &root, const Ta
     case TagClassInfo::Kind::Service:   ce->spec = TypeSpecifier().setService(true);   break;
     case TagClassInfo::Kind::Singleton: ce->spec = TypeSpecifier().setSingleton(true); break;
     case TagClassInfo::Kind::None:      // should never happen, means not properly initialized
-                                        assert(tci->kind != TagClassInfo::Kind::None);
+                                        ASSERT(tci->kind != TagClassInfo::Kind::None);
                                         break;
   }
   ce->name     = tci->name;
@@ -1577,7 +1583,7 @@ void TagFileParser::buildClassEntry(const std::shared_ptr<Entry> &root, const Ta
   ce->tagInfoData.fileName = tci->filename;
   ce->startLine            = tci->lineNr;
   ce->fileName             = m_tagName;
-  ce->hasTagInfo           = TRUE;
+  ce->hasTagInfo           = true;
   ce->id                   = tci->clangId;
   ce->lang                 = tci->isObjC ? SrcLangExt::ObjC : SrcLangExt::Unknown;
   // transfer base class list
@@ -1656,18 +1662,18 @@ void TagFileParser::buildLists(const std::shared_ptr<Entry> &root)
     if (tfi)
     {
       std::shared_ptr<Entry> fe = std::make_shared<Entry>();
-      fe->section = guessSection(tfi->name);
+      fe->section = EntryType::guessSection(tfi->name);
       fe->name     = tfi->name;
       addDocAnchors(fe,tfi->docAnchors);
       fe->tagInfoData.tagName  = m_tagName;
       fe->tagInfoData.fileName = tfi->filename;
-      fe->hasTagInfo = TRUE;
+      fe->hasTagInfo = true;
 
-      QCString fullName = m_tagName+":"+tfi->path+stripPath(tfi->name);
+      DString fullName = m_tagName+":"+tfi->path+stripPath(tfi->name);
       fe->fileName  = fullName;
       fe->startLine = tfi->lineNr;
       //printf("createFileDef() filename=%s\n",qPrint(tfi->filename));
-      QCString tagid = m_tagName+":"+tfi->path;
+      DString tagid = m_tagName+":"+tfi->path;
       auto fd = createFileDef(tagid, tfi->name,m_tagName, tfi->filename);
       FileName *mn = Doxygen::inputNameLinkedMap->find(tfi->name);
       if (mn)
@@ -1676,7 +1682,7 @@ void TagFileParser::buildLists(const std::shared_ptr<Entry> &root)
       }
       else
       {
-        mn = Doxygen::inputNameLinkedMap->add(tfi->name,fullName);
+        mn = Doxygen::inputNameLinkedMap->add(tfi->name);
         mn->push_back(std::move(fd));
       }
       buildMemberList(fe,tfi->members);
@@ -1698,7 +1704,7 @@ void TagFileParser::buildLists(const std::shared_ptr<Entry> &root)
       ce->tagInfoData.fileName = tci->filename;
       ce->startLine   = tci->lineNr;
       ce->fileName    = m_tagName;
-      ce->hasTagInfo  = TRUE;
+      ce->hasTagInfo  = true;
       ce->id       = tci->clangId;
 
       root->moveToSubEntryAndKeep(ce);
@@ -1712,7 +1718,7 @@ void TagFileParser::buildLists(const std::shared_ptr<Entry> &root)
     if (tmi)
     {
       auto &mm = ModuleManager::instance();
-      mm.createModuleDef(tmi->filename,tmi->lineNr,1,true,tmi->name,QCString());
+      mm.createModuleDef(tmi->filename,tmi->lineNr,1,true,tmi->name,DString());
       mm.addTagInfo(tmi->filename,m_tagName,tmi->clangId);
 
       ModuleDef *mod = mm.getPrimaryInterface(tmi->name);
@@ -1755,7 +1761,7 @@ void TagFileParser::buildLists(const std::shared_ptr<Entry> &root)
       ne->tagInfoData.fileName = tni->filename;
       ne->startLine   = tni->lineNr;
       ne->fileName    = m_tagName;
-      ne->hasTagInfo  = TRUE;
+      ne->hasTagInfo  = true;
       ne->id       = tni->clangId;
 
       buildMemberList(ne,tni->members);
@@ -1777,7 +1783,7 @@ void TagFileParser::buildLists(const std::shared_ptr<Entry> &root)
       pe->tagInfoData.fileName = tpgi->filename;
       pe->startLine   = tpgi->lineNr;
       pe->fileName    = m_tagName;
-      pe->hasTagInfo  = TRUE;
+      pe->hasTagInfo  = true;
 
       buildMemberList(pe,tpgi->members);
       root->moveToSubEntryAndKeep(pe);
@@ -1799,7 +1805,7 @@ void TagFileParser::buildLists(const std::shared_ptr<Entry> &root)
       ge->tagInfoData.fileName = tgi->filename;
       ge->startLine   = tgi->lineNr;
       ge->fileName    = m_tagName;
-      ge->hasTagInfo  = TRUE;
+      ge->hasTagInfo  = true;
 
       buildMemberList(ge,tgi->members);
       root->moveToSubEntryAndKeep(ge);
@@ -1847,7 +1853,7 @@ void TagFileParser::buildLists(const std::shared_ptr<Entry> &root)
       pe->tagInfoData.fileName = stripExtension(tpi->filename);
       pe->startLine   = tpi->lineNr;
       pe->fileName    = m_tagName;
-      pe->hasTagInfo  = TRUE;
+      pe->hasTagInfo  = true;
       root->moveToSubEntryAndKeep(pe);
     }
   }
@@ -1887,7 +1893,7 @@ void TagFileParser::addIncludes()
         for (const auto &fd : *fn)
         {
           //printf("input file path=%s name=%s\n",qPrint(fd->getPath()),qPrint(fd->name()));
-          if (fd->getPath()==QCString(m_tagName+":"+tfi->path))
+          if (fd->getPath()==DString(m_tagName+":"+tfi->path))
           {
             //printf("found\n");
             for (const auto &ii : tfi->includes)
@@ -1935,7 +1941,7 @@ void TagFileParser::addIncludes()
 void parseTagFile(const std::shared_ptr<Entry> &root,const char *fullName)
 {
   TagFileParser tagFileParser(fullName);
-  QCString inputStr = fileToString(fullName);
+  DString inputStr = fileToString(fullName);
   XMLHandlers handlers;
   // connect the generic events handlers of the XML parser to the specific handlers of the tagFileParser object
   handlers.startDocument = [&tagFileParser]()                                                              { tagFileParser.startDocument(); };

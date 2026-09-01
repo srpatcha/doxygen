@@ -13,11 +13,16 @@
  *
  */
 
-#include <cstdlib>
-#include <cassert>
-
+// own header
 #include "cppvalue.h"
+
+// standard includes
+#include <string>
+
+// other includes
 #include "constexp.h"
+#include "dstring.h"
+#include "message.h"
 
 CPPValue CPPValue::parseOctal(const std::string &token)
 {
@@ -64,10 +69,10 @@ CPPValue CPPValue::parseBinary(const std::string &token)
 
 CPPValue CPPValue::parseCharacter(const std::string &token) // does not work for '\n' and the alike
 {
-  assert(token.length()>0);
+  ASSERT(!token.empty());
   if (token[1]=='\\')
   {
-    assert(token.length()>1);
+    ASSERT(token.length()>1);
     switch(token[2])
     {
       case 'n':  return CPPValue('\n');

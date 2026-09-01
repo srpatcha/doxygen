@@ -42,20 +42,20 @@
 #include "spdlog/spdlog.h"
 #pragma pop_macro("warn")
 
-#include "message.h"
-#include "qcstring.h"
 #include "construct.h"
+#include "dstring.h"
+#include "message.h"
 
 extern std::shared_ptr<spdlog::logger> g_tracer;
 
-void initTracing(const QCString &logFile, bool timing);
+void initTracing(const DString &logFile, bool timing);
 void exitTracing();
 
 namespace Trace
 {
-  inline QCString trunc(const QCString &s,size_t numChars=15)
+  inline DString trunc(const DString &s,size_t numChars=15)
   {
-    QCString result;
+    DString result;
     size_t i=0;
     for (; i<numChars && i<s.length(); i++)
     {

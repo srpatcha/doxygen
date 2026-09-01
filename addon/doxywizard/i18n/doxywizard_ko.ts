@@ -14,80 +14,8 @@
         <translation>오류</translation>
     </message>
     <message>
-        <source>Possible values are:</source>
-        <translation>가능한 값:</translation>
-    </message>
-    <message>
-        <source>and</source>
-        <translation>그리고</translation>
-    </message>
-    <message>
-        <source>The default value is: &lt;code&gt;%1&lt;/code&gt;.</source>
-        <translation>기본값은 &lt;code&gt;%1&lt;/code&gt;입니다.</translation>
-    </message>
-    <message>
-        <source>Minimum value: %1, maximum value: %2, default value: %3.</source>
-        <translation>최소값: %1, 최대값: %2, 기본값: %3.</translation>
-    </message>
-    <message>
-        <source>The default value is: system dependent.</source>
-        <translation>기본값은 시스템에 따라 다릅니다.</translation>
-    </message>
-    <message>
-        <source>The default directory is: &lt;code&gt;%1&lt;/code&gt;.</source>
-        <translation>기본 디렉토리는 &lt;code&gt;%1&lt;/code&gt;입니다.</translation>
-    </message>
-    <message>
-        <source>The default file is: &lt;code&gt;%1&lt;/code&gt;.</source>
-        <translation>기본 파일은 &lt;code&gt;%1&lt;/code&gt;입니다.</translation>
-    </message>
-    <message>
-        <source>The default file (with absolute path) is: &lt;code&gt;%1&lt;/code&gt;.</source>
-        <translation>기본 파일(절대 경로)은 &lt;code&gt;%1&lt;/code&gt;입니다.</translation>
-    </message>
-    <message>
-        <source>The file has to be specified with full path.</source>
-        <translation>파일은 전체 경로로 지정해야 합니다.</translation>
-    </message>
-    <message>
-        <source>The default image is: &lt;code&gt;%1&lt;/code&gt;.</source>
-        <translation>기본 이미지는 &lt;code&gt;%1&lt;/code&gt;입니다.</translation>
-    </message>
-    <message>
-        <source>The default image (with absolute path) is: &lt;code&gt;%1&lt;/code&gt;.</source>
-        <translation>기본 이미지(절대 경로)는 &lt;code&gt;%1&lt;/code&gt;입니다.</translation>
-    </message>
-    <message>
-        <source>The image has to be specified with full path.</source>
-        <translation>이미지는 전체 경로로 지정해야 합니다.</translation>
-    </message>
-    <message>
-        <source>This tag requires that the tag %1 is set to &lt;code&gt;YES&lt;/code&gt;.</source>
-        <translation>이 태그는 태그 %1을 &lt;code&gt;YES&lt;/code&gt;로 설정해야 합니다.</translation>
-    </message>
-    <message>
-        <source>Note:</source>
-        <translation>참고:</translation>
-    </message>
-    <message>
-        <source>See also:</source>
-        <translation>참조:</translation>
-    </message>
-    <message>
-        <source>Doxygen usage</source>
-        <translation>Doxygen 사용법</translation>
-    </message>
-    <message>
-        <source>External Indexing and Searching</source>
-        <translation>외부 인덱싱 및 검색</translation>
-    </message>
-    <message>
-        <source>Linking to external documentation</source>
-        <translation>외부 문서 연결</translation>
-    </message>
-    <message>
-        <source>Including formulas</source>
-        <translation>수식 포함</translation>
+        <source>Search settings...</source>
+        <translation>설정 검색...</translation>
     </message>
 </context>
 <context>
@@ -372,6 +300,10 @@ Reason given: %2</source>
         <translation>Doxygen GUI 프론트엔드</translation>
     </message>
     <message>
+        <source>Hide documentation</source>
+        <translation>문서 숨기기</translation>
+    </message>
+    <message>
         <source>Switch language...</source>
         <translation>언어 전환...</translation>
     </message>
@@ -621,6 +553,10 @@ Reason given: %2</source>
 <context>
     <name>Wizard</name>
     <message>
+        <source>Project</source>
+        <translation>프로젝트</translation>
+    </message>
+    <message>
         <source>Mode</source>
         <translation>모드</translation>
     </message>
@@ -668,38 +604,6 @@ Reason given: %2</source>
         <translation>다음</translation>
     </message>
     <message>
-        <source>Project</source>
-        <translation>프로젝트</translation>
-    </message>
-    <message>
-        <source>Build</source>
-        <translation>빌드</translation>
-    </message>
-    <message>
-        <source>Messages</source>
-        <translation>메시지</translation>
-    </message>
-    <message>
-        <source>Input</source>
-        <translation>입력</translation>
-    </message>
-    <message>
-        <source>Source Browser</source>
-        <translation>소스 브라우저</translation>
-    </message>
-    <message>
-        <source>Index</source>
-        <translation>인덱스</translation>
-    </message>
-    <message>
-        <source>Preprocessor</source>
-        <translation>전처리기</translation>
-    </message>
-    <message>
-        <source>External</source>
-        <translation>외부 참조</translation>
-    </message>
-    <message>
         <source>Topics</source>
         <translation>주제</translation>
     </message>
@@ -719,8 +623,8 @@ Reason given: %2</source>
         <translation>사용 가능한 언어</translation>
     </message>
     <message>
-        <source>Select and Quit</source>
-        <translation>선택 후 종료</translation>
+        <source>Select and Restart</source>
+        <translation>선택 후 재시작</translation>
     </message>
 </context>
 
