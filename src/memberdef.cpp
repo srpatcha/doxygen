@@ -1686,7 +1686,7 @@ DString MemberDefImpl::getOutputFileBase() const
   {
     return m_explicitOutputFileBase;
   }
-  else if (templateMaster())
+  else if (templateMaster() && (classDef==nullptr || classDef->isImplicitTemplateInstance()))
   {
     return templateMaster()->getOutputFileBase();
   }
@@ -1993,8 +1993,6 @@ void MemberDefImpl::writeLink(OutputList &ol,
   }
 }
 
-static std::mutex g_cachedAnonymousTypeMutex;
-
 void MemberDefImpl::setClassDefOfAnonymousType(const ClassDef *cd)
 {
   m_anonymousType = cd;
@@ -2052,11 +2050,7 @@ bool MemberDefImpl::isBriefSectionVisible() const
 
   // Hide friend (class|struct|union) declarations if HIDE_FRIEND_COMPOUNDS is true
   bool visibleIfFriendCompound = !(hideFriendCompounds &&
-                                   isFriend() /*&&
-                                   (m_type=="friend class" ||
-                                    m_type=="friend struct" ||
-                                    m_type=="friend union"
-                                   )*/
+                                   isFriend()
                                   );
 
   // only include members that are non-private unless EXTRACT_PRIVATE is
@@ -2681,7 +2675,8 @@ bool MemberDefImpl::hasDetailedDescription() const
 
     // a module does not contain details for members, so either the namespace or file should be linkable
     bool moduleFilter = getModuleDef()==nullptr || (getFileDef() && getFileDef()->isLinkable()) ||
-                                                   (getNamespaceDef() && getNamespaceDef()->isLinkable());
+                                                   (getNamespaceDef() && getNamespaceDef()->isLinkable()) ||
+                                                   (getGroupDef() && getGroupDef()->isLinkable());
 
     // only include members that are non-private unless EXTRACT_PRIVATE is
     // set to YES or the member is part of a   group
@@ -6341,18 +6336,13 @@ const ArgumentList &MemberDefImpl::typeConstraints() const
 bool MemberDefImpl::isFriendToHide() const
 {
   bool hideFriendCompounds = Config_getBool(HIDE_FRIEND_COMPOUNDS);
-  bool isFriendToHide = hideFriendCompounds &&
-     (m_type=="friend class"  ||
-      m_type=="friend struct" ||
-      m_type=="friend union");
+  bool isFriendToHide = hideFriendCompounds && isTypeAClassFriend(m_type);
   return isFriendToHide;
 }
 
 bool MemberDefImpl::isFriendClass() const
 {
-  return (isFriend() &&
-         (m_type=="friend class" || m_type=="friend struct" ||
-          m_type=="friend union"));
+  return isFriend() && isTypeAClassFriend(m_type);
 }
 
 
