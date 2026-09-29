@@ -1513,6 +1513,10 @@ STopt  [^\n@\\]*
                                         }
 <ClassDocArg3>{DOCNL}                   {
                                           //if (*yytext=='\n') yyextra->lineNr++;
+                                          if (yyextra->current->includeFile!="<>")
+                                          {
+                                            yyextra->current->includeName = yyextra->current->includeFile;
+                                          }
                                           unput_string(yytext,yyleng);
                                           BEGIN( Comment );
                                         }
@@ -2034,7 +2038,7 @@ STopt  [^\n@\\]*
                                           BEGIN( Comment );
                                         }
 <SectionTitle>{STopt}"\\\\ilinebr"      { // escaped end of section title
-                                          yyextra->sectionTitle+=yytext;
+                                          yyextra->sectionTitle+=substitute(yytext,"#","@#");
                                         }
 <SectionTitle>{STopt}/"\\ilinebr"       { // end of section title
                                           addSection(yyscanner);
@@ -2072,12 +2076,16 @@ STopt  [^\n@\\]*
                                           addOutput(yyscanner,'\n');
                                         }
 <SectionTitle>[^\n@\\]*                 { // any character without special meaning
-                                          yyextra->sectionTitle+=yytext;
+                                          yyextra->sectionTitle+=substitute(yytext,"#","@#");
                                           addOutput(yyscanner,yytext);
                                         }
 <SectionTitle>{B}*{CMD}{CMD}            {
                                           yyextra->sectionTitle+=yytext;
                                           addOutput(yyscanner,yytext);
+                                        }
+<SectionTitle>{CMD}#                    {  // escaped hash
+                                          yyextra->sectionTitle+=yytext;
+                                          addOutput(yyscanner,*yytext);
                                         }
 <SectionTitle>{B}*{CMD}[a-z_A-Z]+"{"[^}]*"}"{B}*  |
 <SectionTitle>{B}*{CMD}[a-z_A-Z]+{B}*   { // handling command in section title
@@ -2139,16 +2147,6 @@ STopt  [^\n@\\]*
                                                     yyextra->sectionTitle+=fullMatch.left(i);
                                                     addOutput(yyscanner,fullMatch.left(i));
                                                     handleFileInfoSection(yyscanner,cmdName,optList);
-                                                    if (idxEnd == DString::npos)
-                                                    {
-                                                      yyextra->sectionTitle+=fullMatch.mid(i+9);
-                                                      addOutput(yyscanner,fullMatch.mid(i+9));
-                                                    }
-                                                    else
-                                                    {
-                                                      yyextra->sectionTitle+=fullMatch.mid(idxEnd+1);
-                                                      addOutput(yyscanner,fullMatch.mid(idxEnd+1));
-                                                    }
                                                   }
                                                   else if (cmdName == "lineinfo")
                                                   {
@@ -2156,12 +2154,8 @@ STopt  [^\n@\\]*
                                                     while (yytext[i]==' ' || yytext[i]=='\t') i++;
                                                     yyextra->sectionTitle+=fullMatch.left(i);
                                                     yyextra->sectionTitle+=DString().setNum(yyextra->lineNr);
-                                                    yyextra->sectionTitle+=' ';
-                                                    yyextra->sectionTitle+=fullMatch.mid(i+9);
                                                     addOutput(yyscanner,fullMatch.left(i));
                                                     addOutput(yyscanner,DString().setNum(yyextra->lineNr));
-                                                    addOutput(yyscanner,' ');
-                                                    addOutput(yyscanner,fullMatch.mid(i+9));
                                                   }
                                                   else if (cmdName == "raisewarning")
                                                   {
@@ -4600,7 +4594,7 @@ static void addSection(yyscan_t yyscanner, bool addYYtext)
     if (!si->ref().empty()) // we are from a tag file
     {
       // create a new section element
-      if (addYYtext) yyextra->sectionTitle+=yytext;
+      if (addYYtext) yyextra->sectionTitle+=substitute(yytext,"#","@#");
       yyextra->sectionTitle=yyextra->sectionTitle.stripWhiteSpace();
       si = sm.replace(yyextra->sectionLabel,yyextra->fileName,yyextra->lineNr,
                       yyextra->sectionTitle,sectionLevelToType(yyextra->sectionLevel),
@@ -4623,7 +4617,7 @@ static void addSection(yyscan_t yyscanner, bool addYYtext)
   else
   {
     // create a new section element
-    if (addYYtext) yyextra->sectionTitle+=yytext;
+    if (addYYtext) yyextra->sectionTitle+=substitute(yytext,"#","@#");
     yyextra->sectionTitle=yyextra->sectionTitle.stripWhiteSpace();
     si = sm.add(yyextra->sectionLabel,yyextra->fileName,yyextra->lineNr,
                 yyextra->sectionTitle,sectionLevelToType(yyextra->sectionLevel),

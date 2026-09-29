@@ -2311,7 +2311,8 @@ bool resolveLink(/* in */ const DString &scName,
     /* out */ const Definition **resContext,
     /* out */ DString &resAnchor,
     /* in */ SrcLangExt lang,
-    /* in */ const DString &prefix
+    /* in */ const DString &prefix,
+    /* in */ const FileDef *currentFile
     )
 {
   *resContext=nullptr;
@@ -2438,7 +2439,7 @@ bool resolveLink(/* in */ const DString &scName,
   else // probably a member reference
   {
     const MemberDef *md = nullptr;
-    bool res = resolveRef(scName,lr,true,resContext,&md,lang);
+    bool res = resolveRef(scName,lr,true,resContext,&md,lang,true,currentFile);
     if (md) resAnchor=md->anchor();
     AUTO_TRACE_EXIT("member? res={}",res);
     return res;
@@ -4963,9 +4964,24 @@ bool mainPageHasTitle()
 
 DString getDotImageExtension()
 {
-  DString imgExt = Config_getEnumAsString(DOT_IMAGE_FORMAT);
-  size_t i= imgExt.find(':'); // strip renderer part when using e.g. 'png:cairo:gd' as format
-  return i==DString::npos ? imgExt : imgExt.left(i);
+  return getDotImageExtension(Config_getEnumAsString(DOT_IMAGE_FORMAT));
+}
+DString getDotImageExtension(const DString &format)
+{
+  size_t i= format.find(':'); // strip renderer part when using e.g. 'png:cairo:gd' as format
+  return i==DString::npos ? format : format.left(i);
+}
+
+DString getDotImageExtensionGenerated(const DString &format)
+{
+  StringVector splitExt = split(format.str(),":");
+  DString extGen;
+  for (size_t i = splitExt.size(); i > 0; )
+  {
+    --i;
+    extGen += splitExt[i] + (i!=0 ? "." : "");
+  }
+  return extGen;
 }
 
 bool openOutputFile(const DString &outFile,std::ofstream &f)
